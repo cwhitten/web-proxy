@@ -7,27 +7,32 @@ const int HOST_INDEX = 1;
 const int PORT_INDEX = 2;
 const bool PRODUCTION = false;
 
+// Defaults
+char * DEFAULT_HOST = "http://www.google.com";
+char * DEFAULT_PORT = "80";
+
 // Function prototypes
 bool validCmdArgs(int argc, char* argv[]);
 char * getHost(char * args[]);
 char * getPort(char * args[]);
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
   // Get user name and host name
   char * host, * port;
   bool args = validCmdArgs(argc, argv);
-  if (!args) {
+  if (!args && PRODUCTION) {
     cerr << "Invalid command line args specified." << endl;
     cerr << "Usage: \"./proxy <hostname> <port>\"" << endl;
     return -1;
+  } else if (!args && !PRODUCTION) {
+    host = DEFAULT_HOST;
+    port = DEFAULT_PORT;
   } else {
     host = getHost(argv);
     port = getPort(argv);
   }
 
   cout << "Requesting " << host << " at port " << port << endl;
-
   return 0;
 }
 

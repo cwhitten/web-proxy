@@ -2,7 +2,7 @@
 
 MAIN = proxy
 PROJECT = proxy
-CC = g++
+CC = g++ -w
 
 all:
 	$(CC) -o $(PROJECT) $(MAIN).cpp
