@@ -38,3 +38,26 @@ type the following: `GET / HTTP/1.0` and hit enter twice. You should see somethi
 ```
 
 There may be some additional pieces of header information as well-setting cookies, instructions to the browser or proxy on caching behavior, etc. What you are seeing is exactly what your web browser sees when it goes to the Yahoo home page: the HTTP status line, the header fields, and finally the HTTP message body- consisting of the HTML that your browser interprets to create a web page.
+
+### Requirements
+You need to implement the proxy program called “proxy.c/cpp”. Assume the executable file for this proxy program is “proxy”, then run your proxy with the following command:
+```
+    ./proxy hostname <port>
+```
+Where hostname is the web server name and port is the port number that the proxy listens on. The behavior of your proxy should be like that of `telnet hostname <port>`, as demonstrated in class. You proxy should display the following messaging (the IP address corresponds to the hostname):
+```
+    Trying 124.129.12.3... Connected to 124.129.12.3. Ctrl-C to escape.
+```
+And, the proxy waits for the HTTP request message(ending with a blank line, do not forget!), for example:
+```
+    GET /index.html HTTP/1.0
+```
+If your proxy is working correctly, the headers and HTML of the requested object should be displayed on your terminal screen.
+
+### Submisson
+* Due by 23:59, 02/04/2013 Monday
+* Tar your files into a tar package, named project2_v1.tar, which includes Makefile, all source files, README file.
+* Run the submission command in cs1.seattleu.edu
+```
+    /home/fac/zhuy/CPSC4560/submit p2 project2_v1.tar
+```
