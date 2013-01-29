@@ -29,7 +29,7 @@ For most common HTTP transactions, the protocol boils down to a relatively simpl
     Connected to www.yahoo.com (209.131.36.158).
     Escape character is 'Ctrl+C'.
 ```
-type the following: `GET / HTTP/1.0` and hit enter twice. You should see something like the following:
+* type the following: `GET / HTTP/1.0` and hit enter twice. You should see something like the following:
 ```
     HTTP/1.0 200 OK
     Date: Fri, 10 Nov 2006 20:31:19 GMT
@@ -42,7 +42,7 @@ type the following: `GET / HTTP/1.0` and hit enter twice. You should see somethi
 
 There may be some additional pieces of header information as well-setting cookies, instructions to the browser or proxy on caching behavior, etc. What you are seeing is exactly what your web browser sees when it goes to the Yahoo home page: the HTTP status line, the header fields, and finally the HTTP message body- consisting of the HTML that your browser interprets to create a web page.
 
-### Requirements
+### Requirements for Part 1
 You need to implement the proxy program called “proxy.c/cpp”. Assume the executable file for this proxy program is “proxy”, then run your proxy with the following command:
 ```
     ./proxy hostname <port>
@@ -63,4 +63,18 @@ If your proxy is working correctly, the headers and HTML of the requested object
 * Run the submission command in cs1.seattleu.edu
 ```
     /home/fac/zhuy/CPSC4560/submit p2 project2_v1.tar
+```
+
+### Requirements for Part 2
+* You must make your proxy a multi-client program by using multi-threading (PThread). Thread synchronization is needed. The max number of threads is capped at 50. Thread synchronization is important to your proxy performance.
+* Cache management at the proxy is required. You need to consider cache size, cache data structure and cache replacement policy. You must provide the design of cache management in your class presentation. Also, you need to check freshness of cached objects before returning to the client.
+* A brief class presentation (5-8 minutes) is required. All the teams need to talk about the system architecture, main data structures, design issues & challenges, solutions, lessons learned, etc.
+* Class demonstration (5 minutes) is required. Your proxy will be tested by all students.
+
+### Submisson
+* Due by 23:59 02/18/2013, Monday
+* Tar your files into a tar package, named project2_v2.tar, which includes Makefile, all source files, README file.
+* Run the submission command in cs1.seattleu.edu
+```
+    /home/fac/zhuy/CPSC4560/submit p2 project2_v2.tar
 ```
