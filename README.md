@@ -10,7 +10,8 @@ This project aims to implement a simple web proxy using HTTP 1.0, and it consist
 The Hypertext Transfer Protocol or (HTTP) is the protocol used for communication on the web. That is, it is the protocol which defines how your web browser requests resources from a web server and how the server responds. For simplicity, in this project we will be dealing only with version 1.0 of the HTTP protocol, defined in detail in RFC 1945. You should read through this RFC and refer back to it when deciding on the behavior of your proxy.
 
 HTTP communications happen in the form of transactions, a transaction consists of a client sending a request to a server and then reading the response. Request and response messages share a common basic format:
-* An initial line (a request or response line, as defined below) • Zero or more header lines
+* An initial line (a request or response line, as defined below)
+* Zero or more header lines
 * A blank line (CRLF)
 * An optional message body.
 
