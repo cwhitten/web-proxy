@@ -20,6 +20,7 @@ const bool PRODUCTION = false;
 // Defaults
 char * DEFAULT_HOST = "www.google.com";
 char * DEFAULT_PORT = "80";
+char * DEFAULT_REQUEST = "GET / HTTP/1.0\r\n\r\n";
 
 // Function prototypes
 bool validCmdArgs(int argc, char* argv[]);
@@ -32,9 +33,9 @@ void connectSocket(int sock, char* addr, char* port);
 void bindSocket(int sock, char* servPort);
 void listenSocket(int sock, int numPending);
 int acceptSocket(int sock);
-int hostnameToIp(char* host, char* ip);
-void writeToSocket(int sock, char * msg);
-void readFromSocket(int sock);
+void hostnameToIp(char* host, char* ip);
+void sendSock(int sock, char * msg);
+void recvSock(int sock, char * buf);
 
 int main(int argc, char * argv[]) {
   // Get user name and host name
@@ -52,12 +53,18 @@ int main(int argc, char * argv[]) {
     port = getPort(argv);
   }
 
-  cout << "Requesting " << host << " at port " << port << endl;
   char ip[20];
   hostnameToIp(host, ip);
+  cout << "Trying " << ip << "..." << endl;
 
   int sock = getSocket();
   connectSocket(sock, ip, port);
+  cout << "Connected to " << ip << "." << endl;
+
+  // Send and receive
+  sendSock(sock, DEFAULT_REQUEST); 
+  cout << "Request has been made." << endl;
+
   close(sock);
 
   return 0;
@@ -75,16 +82,15 @@ char * getPort(char * args[]) {
   return args[PORT_INDEX];
 }
 
-int hostnameToIp(char* host, char* ip) {
+void hostnameToIp(char* host, char* ip) {
   struct hostent * he = gethostbyname(host);
   struct in_addr ** addr_list;
   if (he == NULL) {
     cerr << "Hostname cannot be resolved." << endl;
-    return 1;
+    exit(-1);
   }
   addr_list = (struct in_addr **) he->h_addr_list;
   strcpy(ip, inet_ntoa(*addr_list[0]));
-  return 1;
 }
 
 // Casts a char string to an unsigned short for usage
@@ -167,24 +173,21 @@ int acceptSocket(int sock) {
   return clientSock;
 }
 
-void writeToSocket(int sock, char * msg) {
-  if (write(sock, msg, strlen(msg)) < 0) {
-    cerr << "Error sending username." << endl;
-    exit (1);
-  }
-  if (write(sock, "\r\n", 2) < 0) {
-    cerr << "Error sending end message." << endl;
-    exit (1);
+void sendSock(int sock, char * msg) {
+  int bytes = sizeof(msg);
+  int sent = 0;
+  while (bytes < sizeof(msg)) {
+    sent = send(sock, msg, sizeof(msg), 0);
+    if (sent < 0) {
+      cerr << "Error with send process" << endl;
+      exit(-1);
+    }
+    msg += sent;
+    bytes -= sent;
   }
 }
 
-void readFromSocket(int sock) {
-  int n;
-  char buffer[1024];
+void recvSock(int sock, char * buf) {
 
-  // Read bytes into buffer and then write however many bytes were copied to stdout
-  while ((n = read(sock, buffer, sizeof(buffer))) > 0) {
-    write(1, buffer, n);
-  }
 }
 
