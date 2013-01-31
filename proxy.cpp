@@ -63,34 +63,41 @@ int main(int argc, char * argv[]) {
   cout << "Connected to " << ip << "." << endl;
   cout << "Ctrl+C to escape." << endl << endl;
  
+  // Grab request
   string request;
   getline(cin, request);
   cout << endl;
   request = request + '\r' + '\n' + '\r' + '\n';
   char * req = (char*) request.c_str();
-  // Send and receive
-  sendSock(sock, req); 
   
+  // Send request and receive response
+  sendSock(sock, req); 
   char * out = recvSock(sock);
   cout << out << endl;
   free(out);
+
+  // Close socket
   close(sock);
 
   return 0;
 }
 
+// Check for valid command line arguments
 bool validCmdArgs(int argc, char* argv[]) {
   return argc == NUM_ARGS;
 }
 
+// Return host from command line args
 char * getHost(char * args[]) {
   return args[HOST_INDEX];
 }
 
+// Return port from command line args
 char * getPort(char * args[]) {
   return args[PORT_INDEX];
 }
 
+// Converts host name into server IP address
 void hostnameToIp(char* host, char* ip) {
   struct hostent * he = gethostbyname(host);
   struct in_addr ** addr_list;
@@ -197,6 +204,8 @@ void sendSock(int sock, char * msg) {
   }
 }
 
+// Receive response from socket. This method loops and receives response
+// until the server explicity closes the socket (recv returns zero)
 char * recvSock(int sock) {
   char * buffer = NULL, * newbuffer;
   int pos = 0, len = 0, found = 0;
