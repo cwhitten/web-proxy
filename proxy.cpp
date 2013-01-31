@@ -1,5 +1,6 @@
 #include <iostream>
 #include "string.h"
+#include <stdlib.h>
 using namespace std;
 
 // Networking includes
@@ -24,7 +25,16 @@ char * DEFAULT_PORT = "80";
 bool validCmdArgs(int argc, char* argv[]);
 char * getHost(char * args[]);
 char * getPort(char * args[]);
+unsigned short getPort(char* p);
+int getSocket();
+unsigned long getServer(char* addr);
+void connectSocket(int sock, char* addr, char* port);
+void bindSocket(int sock, char* servPort);
+void listenSocket(int sock, int numPending);
+int acceptSocket(int sock);
 int hostnameToIp(char* host, char* ip);
+void writeToSocket(int sock, char * msg);
+void readFromSocket(int sock);
 
 int main(int argc, char * argv[]) {
   // Get user name and host name
@@ -45,7 +55,11 @@ int main(int argc, char * argv[]) {
   cout << "Requesting " << host << " at port " << port << endl;
   char ip[20];
   hostnameToIp(host, ip);
-  cout << ip << endl;
+
+  int sock = getSocket();
+  connectSocket(sock, ip, port);
+  close(sock);
+
   return 0;
 }
 
@@ -71,5 +85,106 @@ int hostnameToIp(char* host, char* ip) {
   addr_list = (struct in_addr **) he->h_addr_list;
   strcpy(ip, inet_ntoa(*addr_list[0]));
   return 1;
+}
+
+// Casts a char string to an unsigned short for usage
+// as a port in networking functions
+unsigned short getPort(char* p) {
+  return (short) atoi(p);
+}
+
+// Wrapped socket() function that handles errors internally
+int getSocket() {
+  int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (sock < 0) {
+    cerr << "Error with socket process." << endl;
+    exit(-1);
+  }
+  return sock;
+}
+
+// Gets server IP address
+unsigned long getServer(char* addr) {
+  unsigned long servIP;
+  int status = inet_pton(AF_INET, addr, &servIP);
+  if (status <= 0) {
+    cerr << "Error Occured with server IP process." << endl;
+    exit(-1);
+  }
+  return servIP;
+}
+
+// Goes through the logic of connecting a socket
+void connectSocket(int sock, char* addr, char* port) {
+  struct sockaddr_in servAddr;
+  servAddr.sin_family = AF_INET;
+  servAddr.sin_addr.s_addr = getServer(addr);
+  servAddr.sin_port = htons(getPort(port));;
+
+  int status = connect(sock, (struct sockaddr *) &servAddr,
+      sizeof(servAddr));
+  if (status < 0) {
+    cerr << "Error with connect process." << endl;
+    exit(-1);
+  }
+}
+
+
+// Goes through logic and error checking of binding a socket
+void bindSocket(int sock, char* servPort) {
+  struct sockaddr_in servAddr;
+  servAddr.sin_family = AF_INET;
+  servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  servAddr.sin_port = htons(getPort(servPort));
+
+  int status = bind(sock, (struct sockaddr*) &servAddr,
+                            sizeof(servAddr));
+  if (status < 0) {
+    cerr << "Error with bind" << endl;
+    exit(-1);
+  }
+}
+
+// Goes through logic of setting port to listen
+void listenSocket(int sock, int numPending) {
+  int status = listen(sock, numPending);
+  if (status < 0) {
+    cerr << "Error with listen" << endl;
+    exit(-1);
+  }
+}
+
+// Goes through accept socket logic and handles errors internally
+int acceptSocket(int sock) {
+  struct sockaddr_in clientAddr;
+  socklen_t addrLen = sizeof(clientAddr);
+  int clientSock = accept(sock, (struct sockaddr*) &clientAddr,
+                          &addrLen);
+  if (clientSock < 0) {
+    cerr << "Error with accept process." << endl;
+    exit(-1);
+  }
+  return clientSock;
+}
+
+void writeToSocket(int sock, char * msg) {
+  if (write(sock, msg, strlen(msg)) < 0) {
+    cerr << "Error sending username." << endl;
+    exit (1);
+  }
+  if (write(sock, "\r\n", 2) < 0) {
+    cerr << "Error sending end message." << endl;
+    exit (1);
+  }
+}
+
+void readFromSocket(int sock) {
+  int n;
+  char buffer[1024];
+
+  // Read bytes into buffer and then write however many bytes were copied to stdout
+  while ((n = read(sock, buffer, sizeof(buffer))) > 0) {
+    write(1, buffer, n);
+  }
 }
 
