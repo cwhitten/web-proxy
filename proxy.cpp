@@ -61,10 +61,15 @@ int main(int argc, char * argv[]) {
   int sock = getSocket();
   connectSocket(sock, ip, port);
   cout << "Connected to " << ip << "." << endl;
-  cout << "Ctrl+C to escape." << endl;
-  
+  cout << "Ctrl+C to escape." << endl << endl;
+ 
+  string request;
+  getline(cin, request);
+  cout << endl;
+  request = request + '\r' + '\n' + '\r' + '\n';
+  char * req = (char*) request.c_str();
   // Send and receive
-  sendSock(sock, DEFAULT_REQUEST); 
+  sendSock(sock, req); 
   
   char * out = recvSock(sock);
   cout << out << endl;
