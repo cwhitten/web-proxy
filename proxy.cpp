@@ -15,6 +15,7 @@ using namespace std;
 const int NUM_ARGS = 3;
 const int HOST_INDEX = 1;
 const int PORT_INDEX = 2;
+const int BUF_SIZE = 8192;
 const bool PRODUCTION = false;
 
 // Defaults
@@ -35,7 +36,7 @@ void listenSocket(int sock, int numPending);
 int acceptSocket(int sock);
 void hostnameToIp(char* host, char* ip);
 void sendSock(int sock, char * msg);
-void recvSock(int sock, char * buf);
+char * recvSock(int sock);
 
 int main(int argc, char * argv[]) {
   // Get user name and host name
@@ -52,19 +53,21 @@ int main(int argc, char * argv[]) {
     host = getHost(argv);
     port = getPort(argv);
   }
-
+  
   char ip[20];
   hostnameToIp(host, ip);
   cout << "Trying " << ip << "..." << endl;
 
   int sock = getSocket();
   connectSocket(sock, ip, port);
-  cout << "Connected to " << ip << "." << endl;
+  cout << "Connected to " << ip << "." << endl << endl;
 
   // Send and receive
   sendSock(sock, DEFAULT_REQUEST); 
-  cout << "Request has been made." << endl;
-
+  
+  char * out = recvSock(sock);
+  cout << out << endl;
+  free(out);
   close(sock);
 
   return 0;
@@ -173,21 +176,56 @@ int acceptSocket(int sock) {
   return clientSock;
 }
 
+// Send msg to sock ensuring to resend if the entire message is not sent
 void sendSock(int sock, char * msg) {
-  int bytes = sizeof(msg);
-  int sent = 0;
-  while (bytes < sizeof(msg)) {
-    sent = send(sock, msg, sizeof(msg), 0);
-    if (sent < 0) {
-      cerr << "Error with send process" << endl;
+  int bytesToSend = strlen(msg), bytesSent = 0, totalBytesSent = 0;
+  while (bytesToSend > 0) {
+    bytesSent = send(sock, msg, bytesToSend, 0);
+    if (bytesSent < 0) {
+      cerr << "Error sending request." << endl;
       exit(-1);
     }
-    msg += sent;
-    bytes -= sent;
+    totalBytesSent += bytesSent;
+    bytesToSend -= bytesSent;
+    msg += bytesSent;
   }
 }
 
-void recvSock(int sock, char * buf) {
+char * recvSock(int sock) {
+  char * buffer = NULL, * newbuffer;
+  int pos = 0, len = 0, found = 0;
+  int i, n;
+  bool first = false;
 
+  while (true) {
+    if (pos == len) {
+      len = len ? len << 1 : 4;
+      newbuffer = (char *) realloc(buffer, len);
+      if (!newbuffer) {
+        free(buffer);
+        cerr << "Out of memory." << endl;
+        return NULL;
+      }
+      buffer = newbuffer;
+
+      n = recv(sock, buffer + pos, len - pos, 0);
+      if (n < 0) {
+        cerr << "Error receiving from socket." << endl;
+        free(buffer);
+        return NULL;
+      }
+
+      i = pos;
+      while (i < pos + n) {
+        if (buffer[i-3] == '\r' && buffer[i-2] == '\n' &&
+            buffer[i-1] == '\r' && buffer[i] == '\n') {
+          buffer[i] = '\0';
+          return buffer;
+        }
+        i++;
+      }
+      pos += n;
+    }
+  }
 }
 
