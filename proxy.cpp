@@ -60,8 +60,9 @@ int main(int argc, char * argv[]) {
 
   int sock = getSocket();
   connectSocket(sock, ip, port);
-  cout << "Connected to " << ip << "." << endl << endl;
-
+  cout << "Connected to " << ip << "." << endl;
+  cout << "Ctrl+C to escape." << endl;
+  
   // Send and receive
   sendSock(sock, DEFAULT_REQUEST); 
   
@@ -207,25 +208,17 @@ char * recvSock(int sock) {
         return NULL;
       }
       buffer = newbuffer;
-
-      n = recv(sock, buffer + pos, len - pos, 0);
-      if (n < 0) {
-        cerr << "Error receiving from socket." << endl;
-        free(buffer);
-        return NULL;
-      }
-
-      i = pos;
-      while (i < pos + n) {
-        if (buffer[i-3] == '\r' && buffer[i-2] == '\n' &&
-            buffer[i-1] == '\r' && buffer[i] == '\n') {
-          buffer[i] = '\0';
-          return buffer;
-        }
-        i++;
-      }
-      pos += n;
     }
+    n = recv(sock, buffer + pos, len - pos, 0);
+    if (n < 0) {
+      cerr << "Error receiving from socket." << endl;
+      free(buffer);
+      return NULL;
+    }
+    if (n == 0) {
+      return buffer;
+    }
+    pos += n;
   }
 }
 
