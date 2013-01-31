@@ -1,5 +1,14 @@
 #include <iostream>
+#include "string.h"
 using namespace std;
+
+// Networking includes
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 // Program constants
 const int NUM_ARGS = 3;
@@ -8,13 +17,14 @@ const int PORT_INDEX = 2;
 const bool PRODUCTION = false;
 
 // Defaults
-char * DEFAULT_HOST = "http://www.google.com";
+char * DEFAULT_HOST = "www.google.com";
 char * DEFAULT_PORT = "80";
 
 // Function prototypes
 bool validCmdArgs(int argc, char* argv[]);
 char * getHost(char * args[]);
 char * getPort(char * args[]);
+int hostnameToIp(char* host, char* ip);
 
 int main(int argc, char * argv[]) {
   // Get user name and host name
@@ -33,6 +43,9 @@ int main(int argc, char * argv[]) {
   }
 
   cout << "Requesting " << host << " at port " << port << endl;
+  char ip[20];
+  hostnameToIp(host, ip);
+  cout << ip << endl;
   return 0;
 }
 
@@ -47,3 +60,16 @@ char * getHost(char * args[]) {
 char * getPort(char * args[]) {
   return args[PORT_INDEX];
 }
+
+int hostnameToIp(char* host, char* ip) {
+  struct hostent * he = gethostbyname(host);
+  struct in_addr ** addr_list;
+  if (he == NULL) {
+    cerr << "Hostname cannot be resolved." << endl;
+    return 1;
+  }
+  addr_list = (struct in_addr **) he->h_addr_list;
+  strcpy(ip, inet_ntoa(*addr_list[0]));
+  return 1;
+}
+
