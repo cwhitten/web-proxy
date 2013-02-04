@@ -15,7 +15,7 @@ using namespace std;
 const int NUM_ARGS = 3;
 const int HOST_INDEX = 1;
 const int PORT_INDEX = 2;
-const int BUF_SIZE = 8192;
+const int BUF_SIZE = 80000;
 const bool PRODUCTION = false;
 
 // Defaults
@@ -53,7 +53,7 @@ int main(int argc, char * argv[]) {
     host = getHost(argv);
     port = getPort(argv);
   }
-  
+
   char ip[20];
   hostnameToIp(host, ip);
   cout << "Trying " << ip << "..." << endl;
@@ -62,16 +62,16 @@ int main(int argc, char * argv[]) {
   connectSocket(sock, ip, port);
   cout << "Connected to " << ip << "." << endl;
   cout << "Ctrl+C to escape." << endl << endl;
- 
+
   // Grab request
   string request;
   getline(cin, request);
   cout << endl;
   request = request + '\r' + '\n' + '\r' + '\n';
   char * req = (char*) request.c_str();
-  
+
   // Send request and receive response
-  sendSock(sock, req); 
+  sendSock(sock, req);
   char * out = recvSock(sock);
   cout << out << endl;
   free(out);
@@ -215,6 +215,9 @@ char * recvSock(int sock) {
   while (true) {
     if (pos == len) {
       len = len ? len << 1 : 4;
+      if (len >= BUF_SIZE) {
+        len = BUF_SIZE;
+      }
       newbuffer = (char *) realloc(buffer, len);
       if (!newbuffer) {
         free(buffer);
