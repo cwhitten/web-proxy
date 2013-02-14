@@ -46,7 +46,7 @@ private:
     tmp = "";
     i++;
 
-    while (i < strlen(t) && t[i] != ':') {
+    while (i < strlen(t) && t[i] != ',') {
       tmp += t[i++];
     }
     second = atoi(tmp.c_str());
@@ -64,7 +64,6 @@ private:
       tmp += t[i++];
     }
     day = atoi(tmp.c_str());
-    std::cout << tmp << std::endl;
     tmp = "";
     i++;
 
@@ -73,8 +72,8 @@ private:
     }
     year = atoi(tmp.c_str());
 
-    std::cout << hour << " " << minute << " " << second << " " << day
-      << " " << month << " " << year << std::endl;
+    std::cout << hour << " " << minute << " " << second << " " << month
+      << " " << day << " " << year << std::endl;
 
     struct tm tm;
     time_t rawtime;
