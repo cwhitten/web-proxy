@@ -1,3 +1,5 @@
 *.o
 proxy
 *.sublime*
+.DS_Store
+*.dSYM
