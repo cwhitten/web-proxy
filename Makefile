@@ -1,14 +1,9 @@
 # Makefile
 
-MAIN = proxy
-PROJECT = proxy
 CC = g++ -w
 
 all:
-	$(CC) -o $(PROJECT) $(MAIN).cpp
+	$(CC) -g -o proxy proxy.cpp cacheEntry.cpp
 
 clean:
-	\rm -f *.o *~ *.out $(PROJECT)
-
-tar:
-	tar cfv $(PROJECT).tar $(MAIN).cpp
+	\rm -f *.o *~ *.out proxy
