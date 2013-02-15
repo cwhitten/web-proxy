@@ -44,18 +44,16 @@ int acceptSocket(int sock);
 void hostnameToIp(char* host, char* ip);
 void sendSock(int sock, char * msg);
 char * recvSock(int sock);
-vector<CacheEntry> buildCache(); 
+vector<CacheEntry *> buildCache(); 
 void dumpCache(vector<CacheEntry> v);
 
 int main(int argc, char * argv[]) {
 
-  vector<CacheEntry> cache;
-  CacheEntry c1, c2, c3;
-  cache.push_back(c1);
-  cache.push_back(c2);
-  cache.push_back(c3);
-  dumpCache(cache);
-
+  vector<CacheEntry *> cache = buildCache();
+  for (unsigned i = 0; i < cache.size(); i++) {
+    cout << cache[i]->toString() << endl;
+    delete cache[i];
+  }
   // Get user name and host name
   char * host, * port;
   bool args = validCmdArgs(argc, argv);
@@ -256,19 +254,31 @@ char * recvSock(int sock) {
   }
 }
 
-vector<CacheEntry> buildCache() {
+vector<CacheEntry *> buildCache() {
+  vector<CacheEntry *> retCache;
+  CacheEntry * c = NULL;
   ifstream inFile;
   inFile.open(CACHE_FILE);
   string request, headers, body, entry, accessed;
   string line;
 
-  while (inFile.good()) {
-    getline(inFile, line);
-    cout << line << endl;
+  while (!inFile.eof()) {
+    getline(inFile, request);
+    getline(inFile, headers);
+    getline(inFile, body);
+    getline(inFile, entry);
+    getline(inFile, accessed);
+    c = new CacheEntry(request, headers, body, entry, accessed);
+    retCache.push_back(c);
+
+    // Garbage data
+    getline(inFile, request);
+    getline(inFile, request);
   }
 
   inFile.close();
   inFile.clear();
+  return retCache;
 };
 
 void dumpCache(vector<CacheEntry> v) {
