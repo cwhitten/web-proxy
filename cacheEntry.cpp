@@ -1,9 +1,10 @@
 #ifndef CACHE_ENTRY_H
 #define CACHE_ENTRY_H
 
-#include "string"
-#include "time.h"
+#include <stdlib.h>
 #include <iostream>
+#include "string.h"
+#include "time.h"
 
 class CacheEntry {
 private:
@@ -28,6 +29,8 @@ private:
 
   // Convert std::string object to time_t
   time_t stringToTime(std::string ts) {
+
+    // Go through ugly code to grab pieces of std::string ts
     int hour, minute, second, year, month, day;
     std::string tmp;
     const char * t = ts.c_str();
@@ -72,19 +75,18 @@ private:
     }
     year = atoi(tmp.c_str());
 
-    std::cout << hour << " " << minute << " " << second << " " << month
-      << " " << day << " " << year << std::endl;
-
-    struct tm tm;
-    time_t rawtime;
-    time(&rawtime);
-    tm = *localtime(&rawtime);
-    tm.tm_year = year - 1900;
-    tm.tm_mon = month - 1;
-    tm.tm_mday = day;
-    mktime(&tm);
-
-    return rawtime;
+    // Get current local time, update fields, and return new time
+    time_t rawTime;
+    struct tm * timeInfo;
+    time(&rawTime);
+    timeInfo = localtime(&rawTime);
+    timeInfo->tm_year = year - 1900;
+    timeInfo->tm_mon = month - 1;
+    timeInfo->tm_mday = day;
+    timeInfo->tm_sec = second;
+    timeInfo->tm_min = minute;
+    timeInfo->tm_hour = hour;
+    return mktime(timeInfo);
   };
 
 public:

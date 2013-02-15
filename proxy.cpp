@@ -1,7 +1,7 @@
-#include <iostream>
 #include "cacheEntry.cpp"
 #include "string.h"
 #include <stdlib.h>
+#include <iostream>
 using namespace std;
 
 // Networking includes
@@ -40,8 +40,6 @@ void sendSock(int sock, char * msg);
 char * recvSock(int sock);
 
 int main(int argc, char * argv[]) {
-  CacheEntry c("", "", "", "17:35:50, 02/13/2013", "17:35:50, 02/13/2013");
-  cout << c.toString() << endl;
   // Get user name and host name
   char * host, * port;
   bool args = validCmdArgs(argc, argv);
