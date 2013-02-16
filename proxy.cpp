@@ -4,6 +4,7 @@
 #include <semaphore.h>
 #include <iostream>
 #include <fstream>
+#include <queue>
 #include <list>
 
 #include <pthread.h>
@@ -24,10 +25,13 @@ const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
 
+// Global data structures
+queue<string> REQUEST_QUEUE;
+
 // Synchronization locks
 sem_t LOGGING_LOCK;
 sem_t QUEUE_LOCK;
-pthread_cond_t CONSUME_COND;
+pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
   unsigned long num;
@@ -68,7 +72,7 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
-  // Initialize semaphores
+  // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
   sem_init(&QUEUE_LOCK, 0, 1);
 
@@ -83,8 +87,7 @@ int main(int argc, char * argv[]) {
   atexit(returnHandler);
 
   // Initialize socket
-  // Initialize mutex
-  // Intialize request queue
+
   // Initialize thread pool
   initializeThreadPool();
 
