@@ -79,6 +79,7 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
+  log("");
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
   sem_init(&REQUEST_QUEUE_LOCK, 0, 1);
@@ -125,6 +126,7 @@ int main(int argc, char * argv[]) {
 
   log("Closing socket.");
   close(sock);
+  log("");
   return 0;
 }
 
