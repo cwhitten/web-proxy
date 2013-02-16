@@ -53,7 +53,6 @@ void exitHandler(int signal);
 
 // Exit handler code that will be bound to return event
 // This should basically just log that the proxy is exitting
-// likely due to an error.
 void returnHandler();
 
 int main(int argc, char * argv[]) {
