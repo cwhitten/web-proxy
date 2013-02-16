@@ -133,9 +133,6 @@ char * recvSock(int sock) {
   while (true) {
     if (pos == len) {
       len = len ? len << 1 : 4;
-      if (len >= BUF_SIZE) {
-        len = BUF_SIZE;
-      }
       newbuffer = (char *) realloc(buffer, len);
       if (!newbuffer) {
         free(buffer);
@@ -157,5 +154,31 @@ char * recvSock(int sock) {
   }
 }
 
-#endif
+// Receive an HTTP request from sock. This method will receive
+// 100 bytes while looking for a \n delimeter. Once the delimeter
+// is found it will return a char * string up to the delimiter
+char * recvRequest(int sock) {
+  int size = 0;
+  char * buffer = new char[1000], * rBuffer = NULL;
+  int n = recv(sock, (void *) buffer, 1000, 0);
+  if (n < 0) {
+    cerr << "Error receiving from socket." << endl;
+    delete [] buffer;
+    exit(-1);
+  }
+  cout << buffer << endl;
+  for (int i = 0; i < n; i++) {
+    if (buffer[i] == 'P' && buffer[i - 1] == 'T' &&
+        buffer[i - 2] == 'T' && buffer[i - 3] == 'H') {
+      buffer[i] == '\0';
+      size = i;
+      break;
+    }
+  }
+  rBuffer = new char[size];
+  strncpy(rBuffer, buffer, size);
+  delete [] buffer;
+  return rBuffer;
+}
 
+#endif

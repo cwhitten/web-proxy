@@ -21,20 +21,21 @@ using namespace std;
 // Program constants
 const int MAX_THREADS = 50;
 const int MAX_PENDING = 5;
-const bool LOG_TO_FILE = false;
+const bool LOG_TO_FILE = true;
 const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
 const char * SERV_PORT = "10200";
+const char * HTTP_PORT = "80";
+const char * DELIM = "\n";
 
 // Global data structures
-queue<string> REQUEST_QUEUE;
+queue<Request *> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
-sem_t REQUEST_QUEUE_LOCK;
-sem_t ACTIVE_SOCKETS_LOCK;
+pthread_mutex_t REQUEST_QUEUE_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
@@ -52,9 +53,16 @@ void initializeThreadPool();
 void initializeRequestQueue();
 
 // Add a request to the request std::queue
-// Grab mutex lock, add request to std::queue
-// and then unlock
-void addRequest(string request);
+// Grab lock, add request to std::queue and then unlock
+void addRequest(Request * request);
+
+// Pop a request off of the request queue and return it
+// This is thread-safe as it is synchronized
+Request * removeRequest();
+
+// Clear all the remaining requests from the request queue
+// and make sure to dellocate dynamic memory
+void clearRequestQueue();
 
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
@@ -76,10 +84,10 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
+  log("");
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
-  sem_init(&REQUEST_QUEUE_LOCK, 0, 1);
-  sem_init(&ACTIVE_SOCKETS_LOCK, 0, 1);
+  pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -102,25 +110,35 @@ int main(int argc, char * argv[]) {
   initializeThreadPool();
 
   int clientSock;
+  char * request;
   log("Starting proxy server...");
+
   while (true) {
+    log("Listening for a connection.");
     clientSock = acceptSocket(sock);
-    log("Accepted connection");
-    // wait for incoming request
-    // if a request comes in, parse it and add to request queue
-    close(sock);
-    break;
+    log("Accepted connection.");
+    request = recvRequest(clientSock);
+    string req(request);
+    if (req != "") {
+      log("Received non-empty request.");
+      log(req);
+      delete [] request;
+      addRequest(new Request(req, clientSock));
+    } else {
+      log("Ignoring empty request.");
+    }
+    log("Closing client socket.");
+    close(clientSock);
   }
 
   log("Closing socket.");
   close(sock);
+  log("");
   return 0;
 }
 
 void initializeThreadPool() {
   for(int i = 0; i < MAX_THREADS; i++) {
-    // create thread and assign thread routine for each thread
-    // using pthread_create()
     pthread_t tid;
     threadInfo curr;
     curr.num = i;
@@ -136,14 +154,70 @@ void initializeThreadPool() {
 }
 
 void * consumeRequest(void * info) {
-  threadInfo * t = (threadInfo *) info;
+  while (true) {
+    pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
+    if (!REQUEST_QUEUE.empty()) {
+      log("Consuming request.");
+      Request * r = REQUEST_QUEUE.front();
+      REQUEST_QUEUE.pop();
+      log("Hostname: " + r->hostName);
+      log("Path: " + r->pathName);
+
+      char ip[20];
+      hostnameToIp((char *) r->hostName.c_str(), ip);
+      string IP(ip);
+      log("Ip Address: " + IP);
+
+      int sock = getSocket();
+      connectSocket(sock, ip, (char *) HTTP_PORT);
+      log("Connected to server.");
+      string request = "GET " + r->pathName + " HTTP/1.0";
+      log("Making request " + request);
+      request += "\r\n\r\n";
+      sendSock(sock, (char *) request.c_str());
+      log("Receiving response.");
+      char * out = recvSock(sock);
+      log("Sending response to browser.");
+      sendSock(r->getSock(), out);
+      free(out);
+      log("Closing server socket.");
+      close(sock);
+      log("");
+      delete r;
+    }
+    pthread_cond_signal(&CONSUME_COND);
+  }
   return NULL;
 }
 
-void addRequest(string request) {
-  sem_wait(&REQUEST_QUEUE_LOCK);
+void addRequest(Request * request) {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
+  log("Adding request to queue.");
   REQUEST_QUEUE.push(request);
-  sem_post(&REQUEST_QUEUE_LOCK);
+  pthread_cond_signal(&CONSUME_COND);
+  pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
+}
+
+Request * removeRequest() {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
+  log("Removing request from queue.");
+  Request * r = REQUEST_QUEUE.front();
+  REQUEST_QUEUE.pop();
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
+  return r;
+}
+
+void clearRequestQueue() {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
+  log("Clearing request queue.");
+  Request * r;
+  while (!REQUEST_QUEUE.empty()) {
+    r = REQUEST_QUEUE.front();
+    REQUEST_QUEUE.pop();
+    delete r;
+  }
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
 void log(string message, sem_t lock) {
@@ -171,4 +245,5 @@ void exitHandler(int signal) {
 
 void returnHandler() {
   log("Proxy server has called exit()");
+  clearRequestQueue();
 }

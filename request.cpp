@@ -10,13 +10,12 @@ using namespace std;
 
 class Request{
 	private:
-		int port;
-		double version;
-		
+		int socket;
+
 		void parseAll(string s){
 			int i = 0;
-			string host;
-			string path;
+			string host="";
+			string path="";
 			while(i != s.length() && s[i] != 'h'){
 				i++;
 			}
@@ -37,15 +36,16 @@ class Request{
 				i++;
 			}
 			hostName = host;
-			pathName = path; 
+			pathName = path;
 		}
 	public:
 		string hostName;
 		string pathName;
-		Request(string s){
+		Request(string s, int sock){
+			socket = sock;
 			parseAll(s);
-			port = 80;
-			version = 1.0;
 		}
-
+		int getSock(){
+			return socket;
+		}
 };
