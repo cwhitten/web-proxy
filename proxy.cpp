@@ -30,7 +30,7 @@ const char * SERV_PORT = "10200";
 const char * DELIM = "\n";
 
 // Global data structures
-queue<string> REQUEST_QUEUE;
+queue<Request> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
@@ -55,7 +55,9 @@ void initializeRequestQueue();
 // Add a request to the request std::queue
 // Grab mutex lock, add request to std::queue
 // and then unlock
-void addRequest(string request);
+void addRequest(Request request);
+
+Request removeRequest();
 
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
@@ -112,9 +114,11 @@ int main(int argc, char * argv[]) {
     log("Accepted connection.");
     //recv(clientSock, (void *) request, 100, 0);
     request = recvRequest(clientSock);
+    log("Received request.");
     string req(request);
     delete [] request;
-    log("Received request: " + req);
+    Request r(req);
+    addRequest(r);
     log("Closing client socket.");
     close(clientSock);
   }
@@ -147,10 +151,20 @@ void * consumeRequest(void * info) {
   return NULL;
 }
 
-void addRequest(string request) {
+void addRequest(Request request) {
+  log("Adding request to queue.");
   sem_wait(&REQUEST_QUEUE_LOCK);
   REQUEST_QUEUE.push(request);
   sem_post(&REQUEST_QUEUE_LOCK);
+}
+
+Request removeRequest() {
+  log("Removing request from queue.");
+  sem_wait(&REQUEST_QUEUE_LOCK);
+  Request r = REQUEST_QUEUE.front();
+  REQUEST_QUEUE.pop();
+  sem_post(&REQUEST_QUEUE_LOCK);
+  return r;
 }
 
 void log(string message, sem_t lock) {
