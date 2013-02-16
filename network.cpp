@@ -157,5 +157,29 @@ char * recvSock(int sock) {
   }
 }
 
-#endif
+// Receive an HTTP request from sock. This method will receive
+// 100 bytes while looking for a \n delimeter. Once the delimeter
+// is found it will return a char * string up to the delimiter
+char * recvRequest(int sock) {
+  int size = 0;
+  char * buffer = new char[100], * rBuffer = NULL;
+  int n = recv(sock, (void *) buffer, 100, 0);
+  if (n < 0) {
+    cerr << "Error receiving from socket." << endl;
+    delete [] buffer;
+    exit(-1);
+  }
+  for (int i = 0; i < n; i++) {
+    if (buffer[i] == '\n') {
+      buffer[i] == '\0';
+      size = i;
+      break;
+    }
+  }
+  rBuffer = new char[size];
+  strncpy(rBuffer, buffer, size);
+  delete [] buffer;
+  return rBuffer;
+}
 
+#endif

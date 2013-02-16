@@ -4,6 +4,7 @@
 #include <semaphore.h>
 #include <iostream>
 #include <fstream>
+#include <queue>
 #include <list>
 
 #include <pthread.h>
@@ -15,18 +16,27 @@ using namespace std;
 // File includes
 #include "cacheEntry.cpp"
 #include "network.cpp"
-#include "Request.cpp"
+#include "request.cpp"
 
 // Program constants
 const int MAX_THREADS = 50;
-const bool LOG_TO_FILE = false;
+const int MAX_PENDING = 5;
+const bool LOG_TO_FILE = true;
 const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
+const char * SERV_PORT = "10200";
+const char * DELIM = "\n";
+
+// Global data structures
+queue<string> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
+sem_t REQUEST_QUEUE_LOCK;
+sem_t ACTIVE_SOCKETS_LOCK;
+pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
   unsigned int num;
@@ -50,7 +60,7 @@ void addRequest(string request);
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
 // from the queue) and then unlock the queue
-void * consumeRequest(void * threadInfo);
+void * consumeRequest(void * info);
 
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
@@ -67,8 +77,10 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
-  // Initialize semaphores
+  // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
+  sem_init(&REQUEST_QUEUE_LOCK, 0, 1);
+  sem_init(&ACTIVE_SOCKETS_LOCK, 0, 1);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -81,17 +93,34 @@ int main(int argc, char * argv[]) {
   atexit(returnHandler);
 
   // Initialize socket
-  // Initialize mutex
-  // Intialize request queue
+  log("Initializing socket.");
+  int sock = getSocket();
+  bindSocket(sock, (char *) SERV_PORT);
+  log("Setting socket to listen.");
+  listenSocket(sock, MAX_PENDING);
+
   // Initialize thread pool
   initializeThreadPool();
 
+  int clientSock;
+  char * request;
   log("Starting proxy server...");
+
   while (true) {
-    // wait for incoming request
-    // if a request comes in, parse it and add to request queue
+    log("Listening for a connection.");
+    clientSock = acceptSocket(sock);
+    log("Accepted connection.");
+    //recv(clientSock, (void *) request, 100, 0);
+    request = recvRequest(clientSock);
+    string req(request);
+    delete [] request;
+    log("Received request: " + req);
+    log("Closing client socket.");
+    close(clientSock);
   }
 
+  log("Closing socket.");
+  close(sock);
   return 0;
 }
 
@@ -103,7 +132,6 @@ void initializeThreadPool() {
     threadInfo curr;
     curr.num = i;
 
-    log("Creating a new thread.");
     int rc = pthread_create(&tid, NULL, consumeRequest,
       (void *)(&curr));
     if (rc) {
@@ -114,9 +142,15 @@ void initializeThreadPool() {
   }
 }
 
-void * consumeRequest(void * threadInfo) {
-  log("Returning from thread.");
+void * consumeRequest(void * info) {
+  threadInfo * t = (threadInfo *) info;
   return NULL;
+}
+
+void addRequest(string request) {
+  sem_wait(&REQUEST_QUEUE_LOCK);
+  REQUEST_QUEUE.push(request);
+  sem_post(&REQUEST_QUEUE_LOCK);
 }
 
 void log(string message, sem_t lock) {
