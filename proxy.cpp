@@ -178,7 +178,7 @@ void * consumeRequest(void * info) {
       log("Receiving response.");
       char * out = recvSock(sock);
       log("Sending response to browser.");
-      sendSock(r->socket, out);
+      sendSock(r->getSock(), out);
       free(out);
       log("Closing server socket.");
       close(sock);
