@@ -1,5 +1,6 @@
 // Standard includes
 #include <stdlib.h>
+#include <signal.h>
 #include <iostream>
 using namespace std;
 
@@ -9,6 +10,9 @@ using namespace std;
 
 // Program constants
 const int MAX_THREADS = 50;
+const int EXIT_SIGNAL = 2;
+const int OK_CODE = 1;
+const int BAD_CODE = -1;
 
 // Function prototypes
 
@@ -35,7 +39,19 @@ void * consumeRequest(void * ptr);
 // decided yet
 void log(string message);
 
+// Exit handler code that will be bound to the Ctrl+C
+// signal. Code should handle shutting threads and dumping
+// the cache to disk
+void exitHandler(int signal);
+
 int main(int argc, char * argv[]) {
+  // Bind Ctrl+C Signal to Exit Handler
+  struct sigaction sigIntHandler;
+  sigIntHandler.sa_handler = exitHandler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+  sigaction(SIGINT, &sigIntHandler, NULL);
+
   // Initialize socket
   // Initialize mutex
   // Intialize request queue
@@ -50,5 +66,13 @@ int main(int argc, char * argv[]) {
 }
 
 void log(string message) {
-  cout << "LOG:" << message << endl;
+  cout << "LOG: " << message << endl;
 }
+
+void exitHandler(int signal) {
+  if (signal == EXIT_SIGNAL) {
+    log("Shutting down proxy.");
+    exit(OK_CODE);
+  }
+}
+
