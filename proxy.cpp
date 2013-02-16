@@ -18,7 +18,7 @@ using namespace std;
 
 // Program constants
 const int MAX_THREADS = 50;
-const bool LOG_TO_FILE = true;
+const bool LOG_TO_FILE = false;
 const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
@@ -75,7 +75,7 @@ int main(int argc, char * argv[]) {
   sigemptyset(&sigIntHandler.sa_mask);
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
-  
+
   // Bind returnHandler() to return/exit event
   atexit(returnHandler);
 
@@ -83,7 +83,8 @@ int main(int argc, char * argv[]) {
   // Initialize mutex
   // Intialize request queue
   // Initialize thread pool
-  
+  initializeThreadPool();
+
   log("Starting proxy server...");
   while (true) {
     // wait for incoming request
@@ -92,28 +93,35 @@ int main(int argc, char * argv[]) {
 
   return 0;
 }
-void initializeThreadPool(){
-  for(int i = 0; i < MAX_THREADS; i++){
+
+void initializeThreadPool() {
+  for(int i = 0; i < MAX_THREADS; i++) {
     // create thread and assign thread routine for each thread
     // using pthread_create()
-    list<pthread_t*> threadList; //thread id's
-    list<threadInfo> threadTable; //thread information
-    pthread_t *tid = new pthread_t;
+    //list<pthread_t *> threadList; //thread id's
+    //list<threadInfo> threadTable; //thread information
+    pthread_t tid;
     threadInfo curr;
     curr.num = i;
-    threadTable.push_back(curr);
-    threadList.push_back(tid);
-    int rc = pthread_create(tid, NULL, consumeRequest,
-      (void*)(&threadTable.back()));
-    if(rc){
-      cout << "ERROR in ThreadPool initialization" << endl;
-      exit(-1);
+    //threadTable.push_back(curr);
+    //threadList.push_back(tid);
+
+    log("Creating a new thread.");
+    int rc = pthread_create(&tid, NULL, consumeRequest,
+      (void *)(&curr));
+    pthread_detach(tid);
+    if (rc) {
+      log("ERROR in ThreadPool initialization");
+      exit(BAD_CODE);
     }
   }
 }
-void * consumeRequest(void * threadInfo){
-  
+
+void * consumeRequest(void * threadInfo) {
+  log("Returning from thread.");
+  return NULL;
 }
+
 void log(string message, sem_t lock) {
   string msg = "LOG: " + message + "\n";
   sem_wait(&lock);
