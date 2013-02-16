@@ -21,12 +21,13 @@ using namespace std;
 // Program constants
 const int MAX_THREADS = 50;
 const int MAX_PENDING = 5;
-const bool LOG_TO_FILE = false;
+const bool LOG_TO_FILE = true;
 const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
 const char * SERV_PORT = "10200";
+const char * DELIM = "\n";
 
 // Global data structures
 queue<string> REQUEST_QUEUE;
@@ -102,14 +103,20 @@ int main(int argc, char * argv[]) {
   initializeThreadPool();
 
   int clientSock;
+  char * request;
   log("Starting proxy server...");
+
   while (true) {
+    log("Listening for a connection.");
     clientSock = acceptSocket(sock);
-    log("Accepted connection");
-    // wait for incoming request
-    // if a request comes in, parse it and add to request queue
-    close(sock);
-    break;
+    log("Accepted connection.");
+    //recv(clientSock, (void *) request, 100, 0);
+    request = recvRequest(clientSock);
+    string req(request);
+    delete [] request;
+    log("Received request: " + req);
+    log("Closing client socket.");
+    close(clientSock);
   }
 
   log("Closing socket.");
