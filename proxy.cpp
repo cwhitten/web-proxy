@@ -104,6 +104,7 @@ int main(int argc, char * argv[]) {
   int clientSock;
   char request[100];
   log("Starting proxy server...");
+
   while (true) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
