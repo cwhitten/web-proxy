@@ -4,6 +4,12 @@
 #include <semaphore.h>
 #include <iostream>
 #include <fstream>
+#include <list>
+
+#include <pthread.h>
+#include <signal.h>
+#include <sys/select.h>
+
 using namespace std;
 
 // File includes
@@ -20,6 +26,10 @@ const int BAD_CODE = -1;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
+
+struct threadInfo {
+  unsigned long num;
+};
 
 // Function prototypes
 
@@ -39,7 +49,7 @@ void addRequest(string request);
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
 // from the queue) and then unlock the queue
-void * consumeRequest(void * ptr);
+void * consumeRequest(void * threadInfo);
 
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
@@ -82,7 +92,28 @@ int main(int argc, char * argv[]) {
 
   return 0;
 }
-
+void initializeThreadPool(){
+  for(int i = 0; i < MAX_THREADS; i++){
+    // create thread and assign thread routine for each thread
+    // using pthread_create()
+    list<pthread_t*> threadList; //thread id's
+    list<threadInfo> threadTable; //thread information
+    pthread_t *tid = new pthread_t;
+    threadInfo curr;
+    curr.num = i;
+    threadTable.push_back(curr);
+    threadList.push_back(tid);
+    int rc = pthread_create(tid, NULL, consumeRequest,
+      (void*)(&threadTable.back()));
+    if(rc){
+      cout << "ERROR in ThreadPool initialization" << endl;
+      exit(-1);
+    }
+  }
+}
+void * consumeRequest(void * threadInfo){
+  
+}
 void log(string message, sem_t lock) {
   string msg = "LOG: " + message + "\n";
   sem_wait(&lock);
