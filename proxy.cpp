@@ -58,7 +58,7 @@ void addRequest(string request);
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
 // from the queue) and then unlock the queue
-void * consumeRequest(void * threadInfo);
+void * consumeRequest(void * info);
 
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
@@ -91,20 +91,28 @@ int main(int argc, char * argv[]) {
   atexit(returnHandler);
 
   // Initialize socket
+  log("Initializing socket.");
   int sock = getSocket();
   bindSocket(sock, (char *) SERV_PORT);
-  //addActiveSocket(sock);
+  log("Setting socket to listen.");
   listenSocket(sock, MAX_PENDING);
 
   // Initialize thread pool
   initializeThreadPool();
 
+  int clientSock;
   log("Starting proxy server...");
   while (true) {
+    clientSock = acceptSocket(sock);
+    log("Accepted connection from " + clientSock);
     // wait for incoming request
     // if a request comes in, parse it and add to request queue
+    close(sock);
+    break;
   }
 
+  log("Closing socket.");
+  close(sock);
   return 0;
 }
 
@@ -116,7 +124,6 @@ void initializeThreadPool() {
     threadInfo curr;
     curr.num = i;
 
-    log("Creating a new thread.");
     int rc = pthread_create(&tid, NULL, consumeRequest,
       (void *)(&curr));
     if (rc) {
@@ -127,8 +134,8 @@ void initializeThreadPool() {
   }
 }
 
-void * consumeRequest(void * threadInfo) {
-  log("Returning from thread.");
+void * consumeRequest(void * info) {
+  threadInfo * t = (threadInfo *) info;
   return NULL;
 }
 
