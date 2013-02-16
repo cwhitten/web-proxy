@@ -19,18 +19,21 @@ using namespace std;
 
 // Program constants
 const int MAX_THREADS = 50;
+const int MAX_PENDING = 5;
 const bool LOG_TO_FILE = false;
 const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
+const char * SERV_PORT = "10200";
 
 // Global data structures
 queue<string> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
-sem_t QUEUE_LOCK;
+sem_t REQUEST_QUEUE_LOCK;
+sem_t ACTIVE_SOCKETS_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
@@ -74,7 +77,8 @@ void returnHandler();
 int main(int argc, char * argv[]) {
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
-  sem_init(&QUEUE_LOCK, 0, 1);
+  sem_init(&REQUEST_QUEUE_LOCK, 0, 1);
+  sem_init(&ACTIVE_SOCKETS_LOCK, 0, 1);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -87,6 +91,10 @@ int main(int argc, char * argv[]) {
   atexit(returnHandler);
 
   // Initialize socket
+  int sock = getSocket();
+  bindSocket(sock, (char *) SERV_PORT);
+  //addActiveSocket(sock);
+  listenSocket(sock, MAX_PENDING);
 
   // Initialize thread pool
   initializeThreadPool();
