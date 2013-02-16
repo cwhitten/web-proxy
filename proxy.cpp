@@ -30,7 +30,7 @@ const char * SERV_PORT = "10200";
 const char * DELIM = "\n";
 
 // Global data structures
-queue<Request> REQUEST_QUEUE;
+queue<Request *> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
@@ -53,11 +53,16 @@ void initializeThreadPool();
 void initializeRequestQueue();
 
 // Add a request to the request std::queue
-// Grab mutex lock, add request to std::queue
-// and then unlock
-void addRequest(Request request);
+// Grab lock, add request to std::queue and then unlock
+void addRequest(Request * request);
 
-Request removeRequest();
+// Pop a request off of the request queue and return it
+// This is thread-safe as it is synchronized
+Request * removeRequest();
+
+// Clear all the remaining requests from the request queue
+// and make sure to dellocate dynamic memory
+void clearRequestQueue();
 
 // Function that each thread will constantly be executing
 // Thread should get mutex lock, process a request (remove
@@ -113,13 +118,12 @@ int main(int argc, char * argv[]) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
     log("Accepted connection.");
-    //recv(clientSock, (void *) request, 100, 0);
     request = recvRequest(clientSock);
     log("Received request.");
     string req(request);
+    log(req);
     delete [] request;
-    Request r(req);
-    addRequest(r);
+    addRequest(new Request(req, clientSock));
     log("Closing client socket.");
     close(clientSock);
   }
@@ -150,23 +154,37 @@ void initializeThreadPool() {
 
 void * consumeRequest(void * info) {
   threadInfo * t = (threadInfo *) info;
+  //Request req = removeRequest();
+  //close(req.socket);
   return NULL;
 }
 
-void addRequest(Request request) {
+void addRequest(Request * request) {
   log("Adding request to queue.");
   sem_wait(&REQUEST_QUEUE_LOCK);
   REQUEST_QUEUE.push(request);
   sem_post(&REQUEST_QUEUE_LOCK);
 }
 
-Request removeRequest() {
+Request * removeRequest() {
   log("Removing request from queue.");
   sem_wait(&REQUEST_QUEUE_LOCK);
-  Request r = REQUEST_QUEUE.front();
+  Request * r = REQUEST_QUEUE.front();
   REQUEST_QUEUE.pop();
   sem_post(&REQUEST_QUEUE_LOCK);
   return r;
+}
+
+void clearRequestQueue() {
+  log("Clearing request queue.");
+  sem_wait(&REQUEST_QUEUE_LOCK);
+  Request * r;
+  while (!REQUEST_QUEUE.empty()) {
+    r = REQUEST_QUEUE.front();
+    REQUEST_QUEUE.pop();
+    delete r;
+  }
+  sem_post(&REQUEST_QUEUE_LOCK);
 }
 
 void log(string message, sem_t lock) {
@@ -194,4 +212,5 @@ void exitHandler(int signal) {
 
 void returnHandler() {
   log("Proxy server has called exit()");
+  clearRequestQueue();
 }

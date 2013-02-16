@@ -12,7 +12,7 @@ class Request{
 	private:
 		int port;
 		double version;
-		
+
 		void parseAll(string s){
 			int i = 0;
 			string host;
@@ -37,12 +37,14 @@ class Request{
 				i++;
 			}
 			hostName = host;
-			pathName = path; 
+			pathName = path;
 		}
 	public:
 		string hostName;
 		string pathName;
-		Request(string s){
+		int socket;
+		Request(string s, int sock){
+			socket = sock;
 			parseAll(s);
 			port = 80;
 			version = 1.0;
