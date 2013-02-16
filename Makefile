@@ -4,7 +4,7 @@ CC = g++ -w
 PTHREAD = -pthread
 
 all:
-	$(CC) -g -o proxy proxy.cpp cacheEntry.cpp $(PTHREAD)
+	$(CC) -g -o proxy proxy.cpp $(PTHREAD)
 
 clean:
 	\rm -f *.o *~ *.out proxy
