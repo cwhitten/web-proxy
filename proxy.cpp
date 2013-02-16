@@ -102,14 +102,16 @@ int main(int argc, char * argv[]) {
   initializeThreadPool();
 
   int clientSock;
+  char request[100];
   log("Starting proxy server...");
   while (true) {
+    log("Listening for a connection.");
     clientSock = acceptSocket(sock);
     log("Accepted connection");
-    // wait for incoming request
-    // if a request comes in, parse it and add to request queue
-    close(sock);
-    break;
+    recv(clientSock, (void *) request, 100, 0);
+    cout << request << endl;
+    log("Closing client socket.");
+    close(clientSock);
   }
 
   log("Closing socket.");
