@@ -26,6 +26,7 @@ const int BAD_CODE = -1;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
+sem_t QUEUE_LOCK;
 
 struct threadInfo {
   unsigned long num;
@@ -68,6 +69,7 @@ void returnHandler();
 int main(int argc, char * argv[]) {
   // Initialize semaphores
   sem_init(&LOGGING_LOCK, 0, 1);
+  sem_init(&QUEUE_LOCK, 0, 1);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -98,22 +100,18 @@ void initializeThreadPool() {
   for(int i = 0; i < MAX_THREADS; i++) {
     // create thread and assign thread routine for each thread
     // using pthread_create()
-    //list<pthread_t *> threadList; //thread id's
-    //list<threadInfo> threadTable; //thread information
     pthread_t tid;
     threadInfo curr;
     curr.num = i;
-    //threadTable.push_back(curr);
-    //threadList.push_back(tid);
 
     log("Creating a new thread.");
     int rc = pthread_create(&tid, NULL, consumeRequest,
       (void *)(&curr));
-    pthread_detach(tid);
     if (rc) {
       log("ERROR in ThreadPool initialization");
       exit(BAD_CODE);
     }
+    pthread_detach(tid);
   }
 }
 
