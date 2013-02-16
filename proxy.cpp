@@ -27,6 +27,7 @@ const int BAD_CODE = -1;
 // Synchronization locks
 sem_t LOGGING_LOCK;
 sem_t QUEUE_LOCK;
+pthread_cond_t CONSUME_COND;
 
 struct threadInfo {
   unsigned long num;
