@@ -106,13 +106,13 @@ void initializeThreadPool(){
     int rc = pthread_create(tid, NULL, consumeRequest,
       (void*)(&threadTable.back()));
     if(rc){
-      cout << "ERROR in ThreadPool initialization" << endl;
+      log("ERROR in ThreadPool initialization");
       exit(-1);
     }
   }
 }
 void * consumeRequest(void * threadInfo){
-  
+
 }
 void log(string message, sem_t lock) {
   string msg = "LOG: " + message + "\n";
