@@ -1,79 +1,54 @@
-#include "cacheEntry.cpp"
-#include "string.h"
+// Standard includes
 #include <stdlib.h>
 #include <iostream>
-#include <vector>
-#include <fstream>
-#include <istream>
-#include "network.cpp"
 using namespace std;
 
-// Program constants
-const int NUM_ARGS = 3;
-const int HOST_INDEX = 1;
-const int PORT_INDEX = 2;
-const bool PRODUCTION = false;
-const int CACHE_SIZE = 1000;
-const int CACHE_TTL = 5 * 60;
-const char * CACHE_FILE = "cacheDump.out";
+// File includes
+#include "cacheEntry.cpp"
+#include "network.cpp"
 
-// Defaults
-char * DEFAULT_HOST = "www.google.com";
-char * DEFAULT_PORT = "80";
-char * DEFAULT_REQUEST = "GET / HTTP/1.0\r\n\r\n";
+// Program constants
+const int MAX_THREADS = 50;
 
 // Function prototypes
-bool validCmdArgs(int argc, char* argv[]);
-vector<CacheEntry *> buildCache(); 
-void dumpCache(vector<CacheEntry> v);
+
+// Loop MAX_THREADS times and create a new pthread
+// to consume from request queue
+void initializeThreadPool();
+
+// Initialize the request queue that the threads will
+// read from. This may be simple (std::queue)
+void initializeRequestQueue();
+
+// Add a request to the request std::queue
+// Grab mutex lock, add request to std::queue
+// and then unlock
+void addRequest(string request);
+
+// Function that each thread will constantly be executing
+// Thread should get mutex lock, process a request (remove
+// from the queue) and then unlock the queue
+void * consumeRequest(void * ptr);
+
+// Generic function to log messages about the proxy. This
+// will either write to a file or the stdout, haven't
+// decided yet
+void log(string message);
 
 int main(int argc, char * argv[]) {
+  // Initialize socket
+  // Initialize mutex
+  // Intialize request queue
+  // Initialize thread pool
+  
+  while (true) {
+    // wait for incoming request
+    // if a request comes in, parse it and add to request queue
+  }
 
   return 0;
 }
 
-// Check for valid command line arguments
-bool validCmdArgs(int argc, char* argv[]) {
-  return argc == NUM_ARGS;
+void log(string message) {
+  cout << "LOG:" << message << endl;
 }
-
-vector<CacheEntry *> buildCache() {
-  vector<CacheEntry *> retCache;
-  CacheEntry * c = NULL;
-  ifstream inFile;
-  inFile.open(CACHE_FILE);
-  string request, headers, body, entry, accessed;
-  string line;
-
-  while (!inFile.eof()) {
-    getline(inFile, request);
-    getline(inFile, headers);
-    getline(inFile, body);
-    getline(inFile, entry);
-    getline(inFile, accessed);
-    c = new CacheEntry(request, headers, body, entry, accessed);
-    retCache.push_back(c);
-
-    // Garbage data
-    getline(inFile, request);
-    getline(inFile, request);
-  }
-
-  inFile.close();
-  inFile.clear();
-  return retCache;
-};
-
-void dumpCache(vector<CacheEntry> v) {
-  ofstream outFile;
-  outFile.open(CACHE_FILE);
-  if (!outFile.is_open()) {
-    cout << "Error opening file." << endl;
-  }
-  for (unsigned i = 0; i < v.size(); i++) {
-    outFile << v[i].toString();
-  }
-  outFile.close();
-  outFile.clear();
-}
-
