@@ -157,8 +157,9 @@ char * recvSock(int sock) {
   }
 }
 
-// Receive response from socket. This method loops and receives response
-// until the server explicity closes the socket (recv returns zero)
+// Receive an HTTP request from sock. This method will receive
+// 100 bytes while looking for a \n delimeter. Once the delimeter
+// is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
   int size = 0;
   char * buffer = new char[100], * rBuffer = NULL;
