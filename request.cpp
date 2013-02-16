@@ -14,11 +14,13 @@ class Request{
 
 		void parseAll(string s){
 			int i = 0;
+
 			string host="";
 			string path="";
 			while(i != s.length() && s[i] != 'h'){
 				i++;
 			}
+
 			while(i != s.length() && s[i] != '/'){
 				i++;
 			}
@@ -45,6 +47,7 @@ class Request{
 			socket = sock;
 			parseAll(s);
 		}
+
 		int getSock(){
 			return socket;
 		}
