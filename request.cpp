@@ -10,26 +10,42 @@ using namespace std;
 
 class Request{
 	private:
-		string hostName;
-		string request;
 		int port;
+		double version;
 		
-		string parseHost(string s){
-			return s;
-		}
-		int parsePort(string s){
-			return -1;
-
-		}
-		string parseRequest(string s){
-			return s;
-
+		void parseAll(string s){
+			int i = 0;
+			string host;
+			string path;
+			while(i != s.length() && s[i] != 'h'){
+				i++;
+			}
+			while(i != s.length() && s[i] != '/'){
+				i++;
+			}
+			i++;
+			while(i != s.length() && s[i] != '/'){
+				i++;
+			}
+			i++;
+			while(i != s.length() && s[i] != '/'){
+				host += s[i];
+				i++;
+			}
+			while(i != s.length() && s[i] != ' '){
+				path+= s[i];
+				i++;
+			}
+			hostName = host;
+			pathName = path; 
 		}
 	public:
+		string hostName;
+		string pathName;
 		Request(string s){
-			hostName = parseHost(s);
-			port = parsePort(s);
-			request = parseRequest(s);
+			parseAll(s);
+			port = 80;
+			version = 1.0;
 		}
 
 };
