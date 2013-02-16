@@ -157,4 +157,28 @@ char * recvSock(int sock) {
   }
 }
 
+// Receive response from socket. This method loops and receives response
+// until the server explicity closes the socket (recv returns zero)
+char * recvRequest(int sock) {
+  int size = 0;
+  char * buffer = new char[100], * rBuffer = NULL;
+  int n = recv(sock, (void *) buffer, 100, 0);
+  if (n < 0) {
+    cerr << "Error receiving from socket." << endl;
+    delete [] buffer;
+    exit(-1);
+  }
+  for (int i = 0; i < n; i++) {
+    if (buffer[i] == '\n') {
+      buffer[i] == '\0';
+      size = i;
+      break;
+    }
+  }
+  rBuffer = new char[size];
+  strncpy(rBuffer, buffer, size);
+  delete [] buffer;
+  return rBuffer;
+}
+
 #endif
