@@ -104,7 +104,7 @@ int main(int argc, char * argv[]) {
   log("Starting proxy server...");
   while (true) {
     clientSock = acceptSocket(sock);
-    log("Accepted connection from " + clientSock);
+    log("Accepted connection");
     // wait for incoming request
     // if a request comes in, parse it and add to request queue
     close(sock);
@@ -137,6 +137,12 @@ void initializeThreadPool() {
 void * consumeRequest(void * info) {
   threadInfo * t = (threadInfo *) info;
   return NULL;
+}
+
+void addRequest(string request) {
+  sem_wait(&REQUEST_QUEUE_LOCK);
+  REQUEST_QUEUE.push(request);
+  sem_post(&REQUEST_QUEUE_LOCK);
 }
 
 void log(string message, sem_t lock) {
