@@ -1,7 +1,9 @@
 // Standard includes
 #include <stdlib.h>
 #include <signal.h>
+#include <semaphore.h>
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 // File includes
@@ -10,9 +12,14 @@ using namespace std;
 
 // Program constants
 const int MAX_THREADS = 50;
+const bool LOG_TO_FILE = true;
+const char * LOG_FILE_NAME = "proxy.log";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
+
+// Synchronization locks
+sem_t LOGGING_LOCK;
 
 // Function prototypes
 
@@ -37,26 +44,38 @@ void * consumeRequest(void * ptr);
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
 // decided yet
-void log(string message);
+void log(string message, sem_t lock = LOGGING_LOCK);
 
 // Exit handler code that will be bound to the Ctrl+C
 // signal. Code should handle shutting threads and dumping
 // the cache to disk
 void exitHandler(int signal);
 
+// Exit handler code that will be bound to return event
+// This should basically just log that the proxy is exitting
+// likely due to an error.
+void returnHandler();
+
 int main(int argc, char * argv[]) {
-  // Bind Ctrl+C Signal to Exit Handler
+  // Initialize semaphores
+  sem_init(&LOGGING_LOCK, 0, 1);
+
+  // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
   sigIntHandler.sa_handler = exitHandler;
   sigemptyset(&sigIntHandler.sa_mask);
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
+  
+  // Bind returnHandler() to return/exit event
+  atexit(returnHandler);
 
   // Initialize socket
   // Initialize mutex
   // Intialize request queue
   // Initialize thread pool
   
+  log("Starting proxy server...");
   while (true) {
     // wait for incoming request
     // if a request comes in, parse it and add to request queue
@@ -65,14 +84,29 @@ int main(int argc, char * argv[]) {
   return 0;
 }
 
-void log(string message) {
-  cout << "LOG: " << message << endl;
+void log(string message, sem_t lock) {
+  string msg = "LOG: " + message + "\n";
+  sem_wait(&lock);
+  if (LOG_TO_FILE) {
+    ofstream out;
+    out.open(LOG_FILE_NAME, ios::app);
+    if (out.is_open()) {
+      out << msg;
+      out.close();
+    }
+  } else {
+    cout << msg;
+  }
+  sem_post(&lock);
 }
 
 void exitHandler(int signal) {
   if (signal == EXIT_SIGNAL) {
-    log("Shutting down proxy.");
+    log("Shutting down proxy server.");
     exit(OK_CODE);
   }
 }
 
+void returnHandler() {
+  log("Proxy server has called exit()");
+}
