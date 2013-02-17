@@ -166,7 +166,6 @@ char * recvRequest(int sock) {
     delete [] buffer;
     exit(-1);
   }
-  cout << buffer << endl;
   for (int i = 0; i < n; i++) {
     if (buffer[i] == 'P' && buffer[i - 1] == 'T' &&
         buffer[i - 2] == 'T' && buffer[i - 3] == 'H') {
