@@ -105,11 +105,13 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
-  log("");
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
   pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
   pthread_mutex_init(&SOCKET_VECTOR_LOCK, NULL);
+
+  // Blank log so we know when we started
+  log("");
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
