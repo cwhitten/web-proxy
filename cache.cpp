@@ -12,8 +12,8 @@ using namespace tr1;
 // check freshness, remove if not fresh
 // dump cache to disk on close
 class Cache{
-	unordered_map<Request*, CacheEntry*> cache;
-	unordered_map<Request*, CacheEntry*>::iterator it;
+	unordered_map<string, CacheEntry*> cache;
+	unordered_map<string, CacheEntry*>::iterator it;
 
 	public:
 		bool checkFreshness(CacheEntry* entry, time_t currentTime){
@@ -23,7 +23,7 @@ class Cache{
 		void replace(Request* request, CacheEntry* entry){
 			// unorder
 			CacheEntry* minEntry = cache.begin()->second;
-			Request* minRequest = cache.begin()->first;
+			string minRequest = cache.begin()->first;
 			for(it = cache.begin(); it != cache.end(); it++){
 				if(it->second->getLastAccess() < minEntry->getLastAccess()){
 					minRequest = it->first;
@@ -36,16 +36,26 @@ class Cache{
 		bool dumpToFile(char* fileName){
 			ofstream file;
 			file.open(fileName);
+			file << cache.size() << endl;
 			for(it = cache.begin(); it != cache.end(); it++){
-				file << it->first->hostName + "\n";
-				file << it->first->pathName+ "\n";
-				file << it->second->toString()+ "\n";
+				file << it->first + "\n";
+				file << it->second->toString();
 			}
 			return true;
 		}
 		bool getFromFile(char* fileName){
 			ifstream file;
 			file.open(fileName);
+			int size;
+			file >> size;
+			for(int i = 0;i < size; i++){
+				CacheEntry* currEntry;
+				string hostName;
+				string pathName;
+				getline(file, hostName);
+				getline(file, pathName);
+			}
+
 		}
 
 };
