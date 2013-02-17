@@ -133,9 +133,6 @@ char * recvSock(int sock) {
   while (true) {
     if (pos == len) {
       len = len ? len << 1 : 4;
-      if (len >= BUF_SIZE) {
-        len = BUF_SIZE;
-      }
       newbuffer = (char *) realloc(buffer, len);
       if (!newbuffer) {
         free(buffer);
@@ -162,15 +159,17 @@ char * recvSock(int sock) {
 // is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
   int size = 0;
-  char * buffer = new char[100], * rBuffer = NULL;
-  int n = recv(sock, (void *) buffer, 100, 0);
+  char * buffer = new char[1000], * rBuffer = NULL;
+  int n = recv(sock, (void *) buffer, 1000, 0);
   if (n < 0) {
     cerr << "Error receiving from socket." << endl;
     delete [] buffer;
     exit(-1);
   }
+  cout << buffer << endl;
   for (int i = 0; i < n; i++) {
-    if (buffer[i] == '\n') {
+    if (buffer[i] == 'P' && buffer[i - 1] == 'T' &&
+        buffer[i - 2] == 'T' && buffer[i - 3] == 'H') {
       buffer[i] == '\0';
       size = i;
       break;

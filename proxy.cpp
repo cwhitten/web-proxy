@@ -118,10 +118,15 @@ int main(int argc, char * argv[]) {
     clientSock = acceptSocket(sock);
     log("Accepted connection.");
     request = recvRequest(clientSock);
-    log("Received request.");
     string req(request);
-    delete [] request;
-    addRequest(new Request(req, clientSock));
+    if (req != "") {
+      log("Received non-empty request.");
+      log(req);
+      delete [] request;
+      addRequest(new Request(req, clientSock));
+    } else {
+      log("Ignoring empty request.");
+    }
     log("Closing client socket.");
     close(clientSock);
   }
@@ -167,8 +172,8 @@ void * consumeRequest(void * info) {
       connectSocket(sock, ip, (char *) HTTP_PORT);
       log("Connected to server.");
       string request = "GET " + r->pathName + " HTTP/1.0";
-      request += "\r\n\r\n";
       log("Making request " + request);
+      request += "\r\n\r\n";
       sendSock(sock, (char *) request.c_str());
       log("Receiving response.");
       char * out = recvSock(sock);
@@ -177,7 +182,7 @@ void * consumeRequest(void * info) {
       free(out);
       log("Closing server socket.");
       close(sock);
-
+      log("");
       delete r;
     }
     pthread_cond_signal(&CONSUME_COND);
