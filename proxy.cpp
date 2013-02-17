@@ -6,6 +6,7 @@
 #include <fstream>
 #include <queue>
 #include <list>
+#include <sstream>
 
 #include <pthread.h>
 #include <signal.h>
@@ -90,6 +91,10 @@ void closeOpenSockets();
 // decided yet
 void log(string message, sem_t lock = LOGGING_LOCK);
 
+// Function to return the current time as a string. This
+// is used in the logging function
+string getTime();
+
 // Exit handler code that will be bound to the Ctrl+C
 // signal. Code should handle shutting threads and dumping
 // the cache to disk
@@ -100,11 +105,13 @@ void exitHandler(int signal);
 void returnHandler();
 
 int main(int argc, char * argv[]) {
-  log("");
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
   pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
   pthread_mutex_init(&SOCKET_VECTOR_LOCK, NULL);
+
+  // Blank log so we know when we started
+  log("");
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -267,7 +274,7 @@ void closeOpenSockets() {
 }
 
 void log(string message, sem_t lock) {
-  string msg = "LOG: " + message + "\n";
+  string msg = getTime() + " LOG: " + message + "\n";
   sem_wait(&lock);
   if (LOG_TO_FILE) {
     ofstream out;
@@ -280,6 +287,21 @@ void log(string message, sem_t lock) {
     cout << msg;
   }
   sem_post(&lock);
+}
+
+string getTime() {
+  time_t t = time(0);
+  ostringstream convert;
+  struct tm * now = localtime(&t);
+  int year = (now->tm_year + 1900);
+  int month = (now->tm_mon + 1);
+  int day = (now->tm_mday);
+  int hour = now->tm_hour;
+  int minute = now->tm_min;
+  int second = now->tm_sec;
+  convert << "[" << month << "/" << day << "/" << year;
+  convert << "-" << hour << ":" << minute << ":" << second << "]";
+  return convert.str();
 }
 
 void exitHandler(int signal) {
