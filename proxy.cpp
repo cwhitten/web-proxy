@@ -34,8 +34,7 @@ queue<Request *> REQUEST_QUEUE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
-sem_t REQUEST_QUEUE_LOCK;
-sem_t ACTIVE_SOCKETS_LOCK;
+pthread_mutex_t REQUEST_QUEUE_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
@@ -87,8 +86,7 @@ int main(int argc, char * argv[]) {
   log("");
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
-  sem_init(&REQUEST_QUEUE_LOCK, 0, 1);
-  sem_init(&ACTIVE_SOCKETS_LOCK, 0, 1);
+  pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -136,8 +134,6 @@ int main(int argc, char * argv[]) {
 
 void initializeThreadPool() {
   for(int i = 0; i < MAX_THREADS; i++) {
-    // create thread and assign thread routine for each thread
-    // using pthread_create()
     pthread_t tid;
     threadInfo curr;
     curr.num = i;
@@ -153,38 +149,49 @@ void initializeThreadPool() {
 }
 
 void * consumeRequest(void * info) {
-  threadInfo * t = (threadInfo *) info;
-  //Request req = removeRequest();
-  //close(req.socket);
+  while (true) {
+    pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
+    if (!REQUEST_QUEUE.empty()) {
+      log("Consuming request.");
+      Request * r = REQUEST_QUEUE.front();
+      REQUEST_QUEUE.pop();
+      log("Hostname: " + r->hostName);
+      log("Path: " + r->pathName);
+      delete r;
+    }
+    pthread_cond_signal(&CONSUME_COND);
+  }
   return NULL;
 }
 
 void addRequest(Request * request) {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
   log("Adding request to queue.");
-  sem_wait(&REQUEST_QUEUE_LOCK);
   REQUEST_QUEUE.push(request);
-  sem_post(&REQUEST_QUEUE_LOCK);
+  pthread_cond_signal(&CONSUME_COND);
+  pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
 Request * removeRequest() {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
   log("Removing request from queue.");
-  sem_wait(&REQUEST_QUEUE_LOCK);
   Request * r = REQUEST_QUEUE.front();
   REQUEST_QUEUE.pop();
-  sem_post(&REQUEST_QUEUE_LOCK);
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
   return r;
 }
 
 void clearRequestQueue() {
+  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
   log("Clearing request queue.");
-  sem_wait(&REQUEST_QUEUE_LOCK);
   Request * r;
   while (!REQUEST_QUEUE.empty()) {
     r = REQUEST_QUEUE.front();
     REQUEST_QUEUE.pop();
     delete r;
   }
-  sem_post(&REQUEST_QUEUE_LOCK);
+  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
 void log(string message, sem_t lock) {
