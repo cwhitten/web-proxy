@@ -32,9 +32,11 @@ const char * DELIM = "\n";
 
 // Global data structures
 queue<Request *> REQUEST_QUEUE;
+vector<int> SOCKET_VECTOR;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
+pthread_mutex_t SOCKET_VECTOR_LOCK;
 pthread_mutex_t REQUEST_QUEUE_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
@@ -69,6 +71,20 @@ void clearRequestQueue();
 // from the queue) and then unlock the queue
 void * consumeRequest(void * info);
 
+// Function that will add an open socket to a global vector
+// so that we can close open sockets on error or when program
+// exits. This function is thread safe
+void addSocket(int sock);
+
+// Function that will close an open socket and remove it from
+// global vector. This function is thread safe.
+void closeSocket(int sock);
+
+// Function to close all remaining open sockets. This will be
+// executed when the program returns, is closed, or closes on
+// error. This method is thread safe.
+void closeOpenSockets();
+
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
 // decided yet
@@ -88,6 +104,7 @@ int main(int argc, char * argv[]) {
   // Initialize locking mechanisms
   sem_init(&LOGGING_LOCK, 0, 1);
   pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
+  pthread_mutex_init(&SOCKET_VECTOR_LOCK, NULL);
 
   // Bind Ctrl+C Signal to exitHandler()
   struct sigaction sigIntHandler;
@@ -103,6 +120,7 @@ int main(int argc, char * argv[]) {
   log("Initializing socket.");
   int sock = getSocket();
   bindSocket(sock, (char *) SERV_PORT);
+  addSocket(sock);
   log("Setting socket to listen.");
   listenSocket(sock, MAX_PENDING);
 
@@ -116,6 +134,7 @@ int main(int argc, char * argv[]) {
   while (true) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
+    addSocket(clientSock);
     log("Accepted connection.");
     request = recvRequest(clientSock);
     string req(request);
@@ -128,11 +147,11 @@ int main(int argc, char * argv[]) {
       log("Ignoring empty request.");
     }
     log("Closing client socket.");
-    close(clientSock);
+    closeSocket(clientSock);
   }
 
   log("Closing socket.");
-  close(sock);
+  closeSocket(sock);
   log("");
   return 0;
 }
@@ -220,6 +239,33 @@ void clearRequestQueue() {
   pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
+void addSocket(int sock) {
+  pthread_mutex_lock(&SOCKET_VECTOR_LOCK);
+  SOCKET_VECTOR.push_back(sock);
+  pthread_mutex_unlock(&SOCKET_VECTOR_LOCK);
+}
+
+void closeSocket(int sock) {
+  pthread_mutex_lock(&SOCKET_VECTOR_LOCK);
+  for (unsigned i = 0; i < SOCKET_VECTOR.size(); i++) {
+    if (SOCKET_VECTOR[i] == sock) {
+      close(sock);
+      SOCKET_VECTOR.erase(SOCKET_VECTOR.begin() + i);
+    }
+  }
+  pthread_mutex_unlock(&SOCKET_VECTOR_LOCK);
+}
+
+void closeOpenSockets() {
+  pthread_mutex_lock(&SOCKET_VECTOR_LOCK);
+  log("Closing all open sockets.");
+  for (unsigned i = 0; i < SOCKET_VECTOR.size(); i++) {
+    close(SOCKET_VECTOR[i]);
+  }
+  SOCKET_VECTOR.clear();
+  pthread_mutex_unlock(&SOCKET_VECTOR_LOCK);
+}
+
 void log(string message, sem_t lock) {
   string msg = "LOG: " + message + "\n";
   sem_wait(&lock);
@@ -246,4 +292,6 @@ void exitHandler(int signal) {
 void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
+  closeOpenSockets();
+  log("Exiting.");
 }
