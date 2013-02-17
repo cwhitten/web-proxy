@@ -106,9 +106,8 @@ public:
   }
 
   std::string toString() {
-    return  httpRequest + '\n' +
-            httpResponseHeaders + '\n' +
-            httpResponseBody + '\n' +
+    return  httpResponseHeaders + "\r\n\r\n" +
+            httpResponseBody + "\r\n\r\n" +
             timeToString(entryTime) + '\n' +
             timeToString(lastAccessTime) + '\n' +
             '\n' + '\n';

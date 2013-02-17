@@ -45,17 +45,51 @@ class Cache{
 		}
 		bool getFromFile(char* fileName){
 			ifstream file;
-			file.open(fileName);
 			int size;
-			file >> size;
-			for(int i = 0;i < size; i++){
-				CacheEntry* currEntry;
-				string hostName;
-				string pathName;
-				getline(file, hostName);
-				getline(file, pathName);
-			}
+			string line;
 
+			file >> size;
+			file.open(fileName);
+			for(int i = 0;i < size; i++){
+				string currentRequest;
+				// get the request string
+				while(getline(file, line)){
+					currentRequest+=line;
+					if(currentRequest.substr(currentRequest.length()-8) 
+						== "\r\n\r\n"){
+						break;
+					}
+				} 
+				// get the CacheEntry
+				string header;
+				string body;
+				string entryTime;
+				string lastAccessTime;
+				// get header
+				while(getline(file, line)){
+					// inbetween headers and body \r\n\r\n
+					header+=line;
+					if(header.substr(header.length()-8) == 
+						"\r\n\r\n"){
+						break;
+					}
+				}
+				// get body
+				while(getline(file, line)){
+					body+=line;
+					if(body.substr(body.length()-8)
+						=="\r\n\r\n"){
+						break;
+					}
+				}
+				// get time
+				getline(file, entryTime);
+				getline(file, lastAccessTime);
+				CacheEntry* newEntry = new CacheEntry(currentRequest, header,
+					body, entryTime, lastAccessTime);
+				cache[currentRequest] = newEntry;
+			}
+			return true;
 		}
 
 };
