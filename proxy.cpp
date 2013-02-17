@@ -27,6 +27,7 @@ const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
 const char * SERV_PORT = "10200";
+const char * HTTP_PORT = "80";
 const char * DELIM = "\n";
 
 // Global data structures
@@ -119,7 +120,6 @@ int main(int argc, char * argv[]) {
     request = recvRequest(clientSock);
     log("Received request.");
     string req(request);
-    log(req);
     delete [] request;
     addRequest(new Request(req, clientSock));
     log("Closing client socket.");
@@ -157,6 +157,27 @@ void * consumeRequest(void * info) {
       REQUEST_QUEUE.pop();
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
+
+      char ip[20];
+      hostnameToIp((char *) r->hostName.c_str(), ip);
+      string IP(ip);
+      log("Ip Address: " + IP);
+
+      int sock = getSocket();
+      connectSocket(sock, ip, (char *) HTTP_PORT);
+      log("Connected to server.");
+      string request = "GET " + r->pathName + " HTTP/1.0";
+      request += "\r\n\r\n";
+      log("Making request " + request);
+      sendSock(sock, (char *) request.c_str());
+      log("Receiving response.");
+      char * out = recvSock(sock);
+      log("Sending response to browser.");
+      sendSock(r->socket, out);
+      free(out);
+      log("Closing server socket.");
+      close(sock);
+
       delete r;
     }
     pthread_cond_signal(&CONSUME_COND);
