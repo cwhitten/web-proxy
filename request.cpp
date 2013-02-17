@@ -1,7 +1,3 @@
-// hostname port request string
-
-// pass it a string when we create it and it parses those out instead of doing it in main
-
 #include <stdlib.h>
 #include <iostream>
 #include "string.h"

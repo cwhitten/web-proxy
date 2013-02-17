@@ -112,7 +112,10 @@ public:
             timeToString(entryTime) + '\n' +
             timeToString(lastAccessTime) + '\n' +
             '\n' + '\n';
-  };
+  }
+  time_t getLastAccess(){
+    return lastAccessTime;
+  }
 };
 
 #endif
