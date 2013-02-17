@@ -197,7 +197,8 @@ void * consumeRequest(void * info) {
       int sock = getSocket();
       connectSocket(sock, ip, (char *) HTTP_PORT);
       log("Connected to server.");
-      string request = "GET " + r->pathName + " HTTP/1.0";
+      string request = "GET " + r->pathName + " HTTP/1.0\r\n";
+      request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
       log("Making request " + request);
       request += "\r\n\r\n";
       sendSock(sock, (char *) request.c_str());
