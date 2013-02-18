@@ -122,6 +122,21 @@ void sendSock(int sock, char * msg) {
   }
 }
 
+void sendSock(int sock, char * msg, int bytesToSend) {
+  int BYTES = bytesToSend;
+  int bytesSent = 0, totalBytesSent = 0;
+  while (bytesToSend > 0) {
+    bytesSent = send(sock, msg, bytesToSend, 0);
+    if (bytesSent < 0) {
+      cerr << "Error sending request." << endl;
+      exit(-1);
+    }
+    totalBytesSent += bytesSent;
+    bytesToSend -= bytesSent;
+    msg += bytesSent;
+  }
+}
+
 // Receive response from socket. This method loops and receives response
 // until the server explicity closes the socket (recv returns zero)
 char * recvSock(int sock) {
@@ -184,3 +199,4 @@ char * recvRequest(int sock) {
 }
 
 #endif
+
