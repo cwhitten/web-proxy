@@ -97,7 +97,11 @@ public:
   };
 
   CacheEntry(std::string req, std::string resHead, std::string resBody,
+<<<<<<< Updated upstream
               std::string etime, std::string atime) {
+=======
+    std::string etime, std::string atime) {
+>>>>>>> Stashed changes
     httpRequest = req;
     httpResponseHeaders = resHead;
     httpResponseBody = resBody;
@@ -106,8 +110,8 @@ public:
   }
 
   std::string toString() {
-    return  httpResponseHeaders + "\r\n\r\n" +
-            httpResponseBody + "\r\n\r\n" +
+    return  httpResponseHeaders + "\n" +
+            httpResponseBody + "\n" +
             timeToString(entryTime) + '\n' +
             timeToString(lastAccessTime) + '\n';
   }

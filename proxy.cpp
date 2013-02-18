@@ -298,6 +298,24 @@ void closeOpenSockets() {
   SOCKET_VECTOR.clear();
 }
 
+<<<<<<< Updated upstream
+=======
+void addToCache(string key, CacheEntry * value) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  log("adding: " + key);
+  HTTP_CACHE.add(key, value);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+}
+
+CacheEntry * checkCache(string key) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  CacheEntry * c;
+  c = HTTP_CACHE.get(key);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+  return c;
+}
+
+>>>>>>> Stashed changes
 void log(string message, sem_t lock) {
   string msg = getTime() + " LOG: " + message + "\n";
   sem_wait(&lock);
@@ -340,7 +358,7 @@ void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
   closeOpenSockets();
-  // TODO:
-  // DUMP CACHE TO DISK
+  log("Dumping cache to disk");
+  HTTP_CACHE.dumpToFile((char*)"cache_state.txt");
   log("Exiting.");
 }
