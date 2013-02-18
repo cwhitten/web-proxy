@@ -220,6 +220,9 @@ void * consumeRequest(void * info) {
         log("Sending response to browser.");
         if (entry->getLength() != 0) {
           log("Sending using content length");
+          cout << "Socket: " << r->getSock() << endl;
+          cout << "ToCharString: " << entry->toCharString() << endl;
+          cout << "Length: " << entry->getLength() << endl;
           sendSock(r->getSock(), entry->toCharString(), entry->getLength());
           string output(entry->toCharString());
           log(output);

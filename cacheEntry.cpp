@@ -142,7 +142,7 @@ public:
             timeToString(lastAccessTime) + '\n';
   }
   char * toCharString() {
-    std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
+    std::string output = httpResponseHeaders;// + "\r\n\r\n" + httpResponseBody;
     return (char *) output.c_str();
   }
   int getLength() {
