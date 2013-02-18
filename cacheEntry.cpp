@@ -90,7 +90,12 @@ private:
   };
 
   string parseHeaders(string s) {
-    return "";
+    // get the CacheEntry
+    string header;
+    int index = 0;
+    while (index < strlen(s.c_str())) {
+      header += s[index++];
+    }
   }
 
   string parseBody(string s) {
