@@ -67,7 +67,9 @@ void addRequest(Request * request);
 Request * removeRequest();
 
 // Clear all the remaining requests from the request queue
-// and make sure to dellocate dynamic memory
+// and make sure to dellocate dynamic memory. This is not
+// thread synchronized because it is called when exiting
+// the program regardless of thread state.
 void clearRequestQueue();
 
 // Function that each thread will constantly be executing
@@ -86,7 +88,9 @@ void closeSocket(int sock);
 
 // Function to close all remaining open sockets. This will be
 // executed when the program returns, is closed, or closes on
-// error. This method is thread safe.
+// error. This method is not thread synchronized because it is
+// called on closing the program regardless of the state of the
+// threads.
 void closeOpenSockets();
 
 // Generic function to log messages about the proxy. This
@@ -152,7 +156,7 @@ int main(int argc, char * argv[]) {
     log("Accepted connection.");
     request = recvRequest(clientSock);
     string req(request);
-    if (req != "") {
+    if (strlen(req.c_str()) > 0) {
       log("Received non-empty request.");
       log(req);
       delete [] request;
@@ -160,11 +164,9 @@ int main(int argc, char * argv[]) {
     } else {
       log("Ignoring empty request.");
     }
-    log("Closing client socket.");
-    closeSocket(clientSock);
   }
 
-  log("Closing socket.");
+  log("Closing proxy socket.");
   closeSocket(sock);
   log("");
   return 0;
@@ -213,6 +215,7 @@ void * consumeRequest(void * info) {
 
       int sock = getSocket();
       connectSocket(sock, ip, (char *) HTTP_PORT);
+      addSocket(sock);
       log("Connected to server.");
       string request = "GET " + r->pathName + " HTTP/1.0\r\n";
       request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
@@ -231,7 +234,9 @@ void * consumeRequest(void * info) {
       sendSock(r->getSock(), out);
       free(out);
       log("Closing server socket.");
-      close(sock);
+      closeSocket(sock);
+      log("Closing client socket.");
+      closeSocket(r->getSock());
       log("");
       delete r;
     }
@@ -259,7 +264,6 @@ Request * removeRequest() {
 }
 
 void clearRequestQueue() {
-  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
   log("Clearing request queue.");
   Request * r;
   while (!REQUEST_QUEUE.empty()) {
@@ -267,7 +271,6 @@ void clearRequestQueue() {
     REQUEST_QUEUE.pop();
     delete r;
   }
-  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
 void addSocket(int sock) {
@@ -288,13 +291,11 @@ void closeSocket(int sock) {
 }
 
 void closeOpenSockets() {
-  pthread_mutex_lock(&SOCKET_VECTOR_LOCK);
   log("Closing all open sockets.");
   for (unsigned i = 0; i < SOCKET_VECTOR.size(); i++) {
     close(SOCKET_VECTOR[i]);
   }
   SOCKET_VECTOR.clear();
-  pthread_mutex_unlock(&SOCKET_VECTOR_LOCK);
 }
 
 void log(string message, sem_t lock) {
