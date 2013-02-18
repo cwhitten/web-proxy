@@ -18,6 +18,7 @@ using namespace std;
 #include "cacheEntry.cpp"
 #include "network.cpp"
 #include "request.cpp"
+#include "cache.cpp"
 
 // Program constants
 const int MAX_THREADS = 50;

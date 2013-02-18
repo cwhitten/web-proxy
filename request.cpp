@@ -1,3 +1,6 @@
+#ifndef REQUEST
+#define REQUEST
+
 #include <stdlib.h>
 #include <iostream>
 #include "string.h"
@@ -48,3 +51,5 @@ class Request{
 			return socket;
 		}
 };
+
+#endif

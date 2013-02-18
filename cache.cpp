@@ -1,3 +1,6 @@
+#ifndef CACHE
+#define CACHE
+
 #include <tr1/unordered_map>
 #include <iostream>
 #include <pthread.h>
@@ -59,3 +62,5 @@ class Cache{
 		}
 
 };
+
+#endif
