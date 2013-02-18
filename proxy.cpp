@@ -192,6 +192,8 @@ void initializeThreadPool() {
 }
 
 void * consumeRequest(void * info) {
+  CacheEntry * entry;
+  bool foundInCache = false;
   while (true) {
     pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
     if (!REQUEST_QUEUE.empty()) {
@@ -200,7 +202,17 @@ void * consumeRequest(void * info) {
       REQUEST_QUEUE.pop();
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
-
+      string request = "GET " + r->pathName + " HTTP/1.0\r\n";
+      request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
+      request += "\r\n\r\n";
+      entry = checkCache(request);
+      if (entry) {
+        log("Cache hit.");
+        foundInCache = true;
+      } else {
+        log("Cache miss.");
+        foundInCache = false;
+      }
       // TODO:
       // GET CACHE LOCK
       // CHECK CACHE FOR HIT
@@ -220,10 +232,7 @@ void * consumeRequest(void * info) {
       connectSocket(sock, ip, (char *) HTTP_PORT);
       addSocket(sock);
       log("Connected to server.");
-      string request = "GET " + r->pathName + " HTTP/1.0\r\n";
-      request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
       log("Making request " + request);
-      request += "\r\n\r\n";
       sendSock(sock, (char *) request.c_str());
       log("Receiving response.");
       char * out = recvSock(sock);
@@ -232,6 +241,12 @@ void * consumeRequest(void * info) {
       // GET CACHE LOCK
       // CACHE RESPONSE MAPPED TO REQUEST STRING
       // FREE CACHE LOCK
+      if (!foundInCache) {
+        log("Caching HTTP response.");
+        string resp(out);
+        entry = new CacheEntry(request, resp);
+        addToCache(request, entry);
+      }
 
       log("Sending response to browser.");
       sendSock(r->getSock(), out);
@@ -305,6 +320,14 @@ void addToCache(string key, CacheEntry * value) {
   pthread_mutex_lock(&HTTP_CACHE_LOCK);
   HTTP_CACHE.add(key, value);
   pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+}
+
+CacheEntry * checkCache(string key) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  CacheEntry * c;
+  c = HTTP_CACHE.get(key);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+  return c;
 }
 
 void log(string message, sem_t lock) {

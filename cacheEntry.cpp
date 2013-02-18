@@ -89,6 +89,14 @@ private:
     return mktime(timeInfo);
   };
 
+  string parseHeaders(string s) {
+    return "";
+  }
+
+  string parseBody(string s) {
+    return "";
+  }
+
 public:
   CacheEntry() {
     httpRequest = "GET / HTTP/1.0";
@@ -96,8 +104,24 @@ public:
     time(&lastAccessTime);
   };
 
+  CacheEntry(std::string req, std::string res) {
+    httpRequest = req;
+    httpResponseHeaders = parseHeaders(res);
+    httpResponseBody = parseBody(res);
+    time(&entryTime);
+    time(&lastAccessTime);
+  }
+
+  CacheEntry(std::string req, std::string res, std::string etime, std::string atime) {
+    httpRequest = req;
+    httpResponseHeaders = parseHeaders(res);
+    httpResponseBody = parseBody(res);
+    entryTime = stringToTime(etime);
+    lastAccessTime = stringToTime(atime);
+  }
+
   CacheEntry(std::string req, std::string resHead, std::string resBody,
-              std::string etime, std::string atime) {
+             std::string etime, std::string atime) {
     httpRequest = req;
     httpResponseHeaders = resHead;
     httpResponseBody = resBody;
@@ -105,11 +129,18 @@ public:
     lastAccessTime = stringToTime(atime);
   }
 
+  void updateAccessTime() {
+    time(&lastAccessTime);
+  }
+
   std::string toString() {
     return  httpResponseHeaders + "\r\n\r\n" +
             httpResponseBody + "\r\n\r\n" +
             timeToString(entryTime) + '\n' +
             timeToString(lastAccessTime) + '\n';
+  }
+  char * toCharString() {
+
   }
   time_t getLastAccess(){
     return lastAccessTime;
