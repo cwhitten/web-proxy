@@ -101,10 +101,10 @@ public:
   CacheEntry(std::string req, std::string res) {
     httpRequest = req;
     int i = 0;
-    while(res.substr(i, 8)!="\r\n\r\n"){
-      httpResponseHeaders+=res[i];
+    while(res.substr(i, 4) != "\r\n\r\n") {
+      httpResponseHeaders += res[i++];
     }
-    httpResponseBody = res.substr(i+8);
+    httpResponseBody = res.substr(i+4);
     time(&entryTime);
     time(&lastAccessTime);
   }
@@ -112,10 +112,10 @@ public:
   CacheEntry(std::string req, std::string res, std::string etime, std::string atime) {
     httpRequest = req;
     int i = 0;
-    while(res.substr(i, 8)!="\r\n\r\n"){
-      httpResponseHeaders+=res[i];
+    while(res.substr(i, 4)!="\r\n"){
+      httpResponseHeaders+=res[i++];
     }
-    httpResponseBody = res.substr(i+8);
+    httpResponseBody = res.substr(i+4);
     entryTime = stringToTime(etime);
     lastAccessTime = stringToTime(atime);
   }
@@ -140,7 +140,10 @@ public:
             timeToString(lastAccessTime) + '\n';
   }
   char * toCharString() {
-
+    std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
+    char * out = new char[strlen(output.c_str())];
+    strcpy(out, output.c_str());
+    return out;
   }
   time_t getLastAccess(){
     return lastAccessTime;
