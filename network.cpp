@@ -169,10 +169,8 @@ char * recvRequest(int sock) {
       exit(-1);
     }
     if (buff[size - 1] == '\n') {
-      cout << "Found delim" << endl;
-      buff[size - 1] == '\0';
       received = new char[size];
-      strcpy(received, buff);
+      strncpy(received, buff, size - 2);
       delete [] buff;
       return received;
     }
