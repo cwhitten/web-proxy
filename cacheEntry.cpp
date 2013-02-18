@@ -106,12 +106,10 @@ public:
   }
 
   std::string toString() {
-    return  httpRequest + '\n' +
-            httpResponseHeaders + '\n' +
-            httpResponseBody + '\n' +
+    return  httpResponseHeaders + "\r\n\r\n" +
+            httpResponseBody + "\r\n\r\n" +
             timeToString(entryTime) + '\n' +
-            timeToString(lastAccessTime) + '\n' +
-            '\n' + '\n';
+            timeToString(lastAccessTime) + '\n';
   }
   time_t getLastAccess(){
     return lastAccessTime;
