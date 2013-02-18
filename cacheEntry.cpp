@@ -143,9 +143,7 @@ public:
   }
   char * toCharString() {
     std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
-    char * out = new char[strlen(output.c_str())];
-    strcpy(out, output.c_str());
-    return out;
+    return (char *) output.c_str();
   }
   int getLength() {
     return length;

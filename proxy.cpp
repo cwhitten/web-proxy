@@ -159,7 +159,6 @@ int main(int argc, char * argv[]) {
     addSocket(clientSock);
     request = recvRequest(clientSock);
     string req(request);
-    cout << req << endl;
     if (strlen(req.c_str()) > 0) {
       log("Received non-empty request.");
       log(req);
@@ -218,10 +217,15 @@ void * consumeRequest(void * info) {
 
         // Send cached response
         log("Sending response to browser.");
-        if (entry->getLength() != 0)
+        if (entry->getLength() != 0) {
+          log("Sending using content length");
           sendSock(r->getSock(), entry->toCharString(), entry->getLength());
-        else
+          string output(entry->toCharString());
+          log(output);
+        } else {
+          log("sending without content length");
           sendSock(r->getSock(), entry->toCharString());
+        }
       } else {
         log("Cache miss.");
 
