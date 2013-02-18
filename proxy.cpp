@@ -31,7 +31,6 @@ const int OK_CODE = 1;
 const int BAD_CODE = -1;
 const char * SERV_PORT = "10200";
 const char * HTTP_PORT = "80";
-const char * DELIM = "\n";
 
 // Global data structures
 queue<Request *> REQUEST_QUEUE;
@@ -77,6 +76,10 @@ void clearRequestQueue();
 // Thread should get mutex lock, process a request (remove
 // from the queue) and then unlock the queue
 void * consumeRequest(void * info);
+
+string buildRequest(string host, string path);
+int parseContentLength(char * resp); 
+int parseHeaderLength(char * resp);
 
 // Function that will add an open socket to a global vector
 // so that we can close open sockets on error or when program
@@ -190,47 +193,78 @@ void initializeThreadPool() {
 }
 
 void * consumeRequest(void * info) {
-  int sock;
+  int sock, length;
   CacheEntry * entry;
   bool foundInCache = false;
   while (true) {
     pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
     if (!REQUEST_QUEUE.empty()) {
+      // Grab a request
       Request * r = REQUEST_QUEUE.front();
+      if (r == NULL) {
+        return NULL;
+      }
       REQUEST_QUEUE.pop();
+
+      // Log request information
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
-      string request = "GET " + r->pathName + " HTTP/1.0\r\n";
-      request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
-      request += "\r\n\r\n";
+
+      // Build request
+      string request = buildRequest(r->hostName, r->pathName);
       entry = checkCache(request);
-      if (entry) {
+      if (entry != NULL) {
         log("Cache hit.");
+
+        // Send cached response
         log("Sending response to browser.");
-        sendSock(r->getSock(), entry->toCharString());
+        if (entry->getLength() != 0) {
+          log("Sending using content length");
+          sendSock(r->getSock(), entry->toCharString(), entry->getLength());
+          string output(entry->toCharString());
+          log(output);
+        } else {
+          log("sending without content length");
+          sendSock(r->getSock(), entry->toCharString());
+        }
       } else {
         log("Cache miss.");
+
+        // Get IP address and connect socket
         char ip[20];
         hostnameToIp((char *) r->hostName.c_str(), ip);
-        string IP(ip);
-        log("Ip Address: " + IP);
         sock = getSocket();
         connectSocket(sock, ip, (char *) HTTP_PORT);
         addSocket(sock);
+
+        // Make request of server and get response
         log("Making request " + request);
         sendSock(sock, (char *) request.c_str());
         log("Receiving response.");
         char * out = recvSock(sock);
+        int length = parseContentLength(out);
+        if (length != 0) {
+          length += parseHeaderLength(out);
+        }
+        // Cache response (will be freed by Cache destructor)
         log("Caching HTTP response.");
         string resp(out);
-        entry = new CacheEntry(request, resp);
+        entry = new CacheEntry(request, resp, length);
+        
         addToCache(request, entry);
+        // Send response to browser
         log("Sending response to browser.");
-        sendSock(r->getSock(), out);
+        if (length != 0)
+          sendSock(r->getSock(), out, length);
+        else
+          sendSock(r->getSock(), out);
+        log("Freeing out variable");
+
+        // Free out dynamic memory and close socket
         free(out);
+        closeSocket(sock);
       }
 
-      closeSocket(sock);
       closeSocket(r->getSock());
       log("");
       delete r;
@@ -238,6 +272,43 @@ void * consumeRequest(void * info) {
     pthread_cond_signal(&CONSUME_COND);
   }
   return NULL;
+}
+
+string buildRequest(string host, string path) {
+  return  "GET " + path + " HTTP/1.0\n" +
+          "Host: " + host + "\n" +
+          "User-Agent: TEST" + "\r\n\r\n";
+}
+
+int parseContentLength(char * resp) {
+  string response(resp);
+  string length;
+  int ind = 0;
+  while (ind < strlen(response.c_str())) {
+    if (response.substr(ind, 16) != "Content-Length: ") {
+      ind++;
+    } else {
+      ind += 16;
+      while (ind < strlen(response.c_str()) && response[ind] != '\n') {
+        length += response[ind++];
+      }
+      return atoi(length.c_str());
+    }
+  }
+  return 0;
+}
+
+int parseHeaderLength(char * resp) {
+  string response(resp);
+  int ind = 0;
+  while (ind < strlen(response.c_str())) {
+    if (response.substr(ind, 4) == "\r\n\r\n") {
+      ind += 4;
+      break;
+    }
+    ind++;
+  }
+  return ind;
 }
 
 void addRequest(Request * request) {

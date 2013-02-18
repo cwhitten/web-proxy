@@ -15,6 +15,7 @@ private:
   std::string httpResponseBody;
   time_t entryTime;
   time_t lastAccessTime;
+  int length;
 
   // Convert time_t object to std::string
   std::string timeToString(time_t t) {
@@ -98,7 +99,8 @@ public:
     time(&lastAccessTime);
   };
 
-  CacheEntry(std::string req, std::string res) {
+  CacheEntry(std::string req, std::string res, int l) {
+    length = l;
     httpRequest = req;
     int i = 0;
     while(res.substr(i, 4) != "\r\n\r\n") {
@@ -141,9 +143,10 @@ public:
   }
   char * toCharString() {
     std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
-    char * out = new char[strlen(output.c_str())];
-    strcpy(out, output.c_str());
-    return out;
+    return (char *) output.c_str();
+  }
+  int getLength() {
+    return length;
   }
   time_t getLastAccess(){
     return lastAccessTime;
