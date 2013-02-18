@@ -61,7 +61,7 @@ class Cache{
 			file << cache.size() << endl;
 			for(it = cache.begin(); it != cache.end(); it++){
 				file << it->first + "\n";
-				file << it->second->toString();
+				file << it->second->getCharString();
 			}
 			return true;
 		}
@@ -107,9 +107,7 @@ class Cache{
 				// get time
 				getline(file, entryTime);
 				getline(file, lastAccessTime);
-				CacheEntry* newEntry = new CacheEntry(currentRequest, header,
-					body, entryTime, lastAccessTime);
-				cache[currentRequest] = newEntry;
+				cache[currentRequest] = NULL;
 			}
 			return true;
 		}

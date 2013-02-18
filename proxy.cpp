@@ -78,8 +78,6 @@ void clearRequestQueue();
 void * consumeRequest(void * info);
 
 string buildRequest(string host, string path);
-int parseContentLength(char * resp); 
-int parseHeaderLength(char * resp);
 
 // Function that will add an open socket to a global vector
 // so that we can close open sockets on error or when program
@@ -218,18 +216,7 @@ void * consumeRequest(void * info) {
 
         // Send cached response
         log("Sending response to browser.");
-        if (entry->getLength() != 0) {
-          log("Sending using content length");
-          cout << "Socket: " << r->getSock() << endl;
-          cout << "ToCharString: " << entry->toCharString() << endl;
-          cout << "Length: " << entry->getLength() << endl;
-          sendSock(r->getSock(), entry->toCharString(), entry->getLength());
-          string output(entry->toCharString());
-          log(output);
-        } else {
-          log("sending without content length");
-          sendSock(r->getSock(), entry->toCharString());
-        }
+        sendSock(r->getSock(), entry->getCharString(), entry->getLength());
       } else {
         log("Cache miss.");
 
@@ -245,26 +232,20 @@ void * consumeRequest(void * info) {
         sendSock(sock, (char *) request.c_str());
         log("Receiving response.");
         char * out = recvSock(sock);
-        int length = parseContentLength(out);
-        if (length != 0) {
-          length += parseHeaderLength(out);
+        if (out == NULL) {
+          log("Error receiving from socket.");
         }
+
         // Cache response (will be freed by Cache destructor)
         log("Caching HTTP response.");
-        string resp(out);
-        entry = new CacheEntry(request, resp, length);
-        
+        entry = new CacheEntry(out);
+        free(out);
         addToCache(request, entry);
+
         // Send response to browser
         log("Sending response to browser.");
-        if (length != 0)
-          sendSock(r->getSock(), out, length);
-        else
-          sendSock(r->getSock(), out);
-        log("Freeing out variable");
+        sendSock(r->getSock(), entry->getCharString(), entry->getLength());
 
-        // Free out dynamic memory and close socket
-        free(out);
         closeSocket(sock);
       }
 
@@ -281,37 +262,6 @@ string buildRequest(string host, string path) {
   return  "GET " + path + " HTTP/1.0\n" +
           "Host: " + host + "\n" +
           "User-Agent: TEST" + "\r\n\r\n";
-}
-
-int parseContentLength(char * resp) {
-  string response(resp);
-  string length;
-  int ind = 0;
-  while (ind < strlen(response.c_str())) {
-    if (response.substr(ind, 16) != "Content-Length: ") {
-      ind++;
-    } else {
-      ind += 16;
-      while (ind < strlen(response.c_str()) && response[ind] != '\n') {
-        length += response[ind++];
-      }
-      return atoi(length.c_str());
-    }
-  }
-  return 0;
-}
-
-int parseHeaderLength(char * resp) {
-  string response(resp);
-  int ind = 0;
-  while (ind < strlen(response.c_str())) {
-    if (response.substr(ind, 4) == "\r\n\r\n") {
-      ind += 4;
-      break;
-    }
-    ind++;
-  }
-  return ind;
 }
 
 void addRequest(Request * request) {
