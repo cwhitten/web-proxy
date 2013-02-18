@@ -91,20 +91,6 @@ private:
     return mktime(timeInfo);
   };
 
-  string parseHeaders(string s) {
-    // get the CacheEntry
-    int i = 0;
-    string header;
-    string body;
-    while(s.substr(i, 8)!="\r\n\r\n"){
-      header+=s[i];
-    }
-  }
-
-  string parseBody(string s) {
-    return "";
-  }
-
 public:
   CacheEntry() {
     httpRequest = "GET / HTTP/1.0";
