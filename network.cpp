@@ -148,6 +148,7 @@ char * recvSock(int sock) {
       return NULL;
     }
     if (n == 0) {
+      buffer[pos] = '\0';
       return buffer;
     }
     pos += n;
