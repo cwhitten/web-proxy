@@ -127,6 +127,9 @@ int main(int argc, char * argv[]) {
   // Bind returnHandler() to return/exit event
   atexit(returnHandler);
 
+  // TODO:
+  // BUILD CACHE FROM DISK
+
   // Initialize socket
   log("Initializing socket.");
   int sock = getSocket();
@@ -193,6 +196,16 @@ void * consumeRequest(void * info) {
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
 
+      // TODO:
+      // GET CACHE LOCK
+      // CHECK CACHE FOR HIT
+      //    IF HIT && FRESH ->
+      //      UPDATE LAST ACCESS TIME
+      //      RETURN HIT
+      //    ELSE ->
+      //      MAKE REQUEST
+      // FREE CACHE LOCK
+
       char ip[20];
       hostnameToIp((char *) r->hostName.c_str(), ip);
       string IP(ip);
@@ -208,6 +221,12 @@ void * consumeRequest(void * info) {
       sendSock(sock, (char *) request.c_str());
       log("Receiving response.");
       char * out = recvSock(sock);
+
+      // TODO:
+      // GET CACHE LOCK
+      // CACHE RESPONSE MAPPED TO REQUEST STRING
+      // FREE CACHE LOCK
+
       log("Sending response to browser.");
       sendSock(r->getSock(), out);
       free(out);
@@ -320,5 +339,7 @@ void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
   closeOpenSockets();
+  // TODO:
+  // DUMP CACHE TO DISK
   log("Exiting.");
 }
