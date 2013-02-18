@@ -6,6 +6,8 @@
 #include "string.h"
 #include "time.h"
 
+using namespace std;
+
 class CacheEntry {
 private:
   std::string httpRequest;
@@ -96,8 +98,30 @@ public:
     time(&lastAccessTime);
   };
 
+  CacheEntry(std::string req, std::string res) {
+    httpRequest = req;
+    int i = 0;
+    while(res.substr(i, 4) != "\r\n\r\n") {
+      httpResponseHeaders += res[i++];
+    }
+    httpResponseBody = res.substr(i+4);
+    time(&entryTime);
+    time(&lastAccessTime);
+  }
+
+  CacheEntry(std::string req, std::string res, std::string etime, std::string atime) {
+    httpRequest = req;
+    int i = 0;
+    while(res.substr(i, 4)!="\r\n"){
+      httpResponseHeaders+=res[i++];
+    }
+    httpResponseBody = res.substr(i+4);
+    entryTime = stringToTime(etime);
+    lastAccessTime = stringToTime(atime);
+  }
+
   CacheEntry(std::string req, std::string resHead, std::string resBody,
-              std::string etime, std::string atime) {
+             std::string etime, std::string atime) {
     httpRequest = req;
     httpResponseHeaders = resHead;
     httpResponseBody = resBody;
@@ -105,11 +129,21 @@ public:
     lastAccessTime = stringToTime(atime);
   }
 
+  void updateAccessTime() {
+    time(&lastAccessTime);
+  }
+
   std::string toString() {
     return  httpResponseHeaders + "\r\n\r\n" +
             httpResponseBody + "\r\n\r\n" +
             timeToString(entryTime) + '\n' +
             timeToString(lastAccessTime) + '\n';
+  }
+  char * toCharString() {
+    std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
+    char * out = new char[strlen(output.c_str())];
+    strcpy(out, output.c_str());
+    return out;
   }
   time_t getLastAccess(){
     return lastAccessTime;

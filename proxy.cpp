@@ -93,6 +93,9 @@ void closeSocket(int sock);
 // threads.
 void closeOpenSockets();
 
+void addToCache(string key, CacheEntry * value);
+CacheEntry * checkCache(string key);
+
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
 // decided yet
@@ -135,11 +138,9 @@ int main(int argc, char * argv[]) {
   // BUILD CACHE FROM DISK
 
   // Initialize socket
-  log("Initializing socket.");
   int sock = getSocket();
   bindSocket(sock, (char *) SERV_PORT);
   addSocket(sock);
-  log("Setting socket to listen.");
   listenSocket(sock, MAX_PENDING);
 
   // Initialize thread pool
@@ -153,7 +154,6 @@ int main(int argc, char * argv[]) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
     addSocket(clientSock);
-    log("Accepted connection.");
     request = recvRequest(clientSock);
     string req(request);
     if (strlen(req.c_str()) > 0) {
@@ -189,53 +189,47 @@ void initializeThreadPool() {
 }
 
 void * consumeRequest(void * info) {
+  int sock;
+  CacheEntry * entry;
+  bool foundInCache = false;
   while (true) {
     pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
     if (!REQUEST_QUEUE.empty()) {
-      log("Consuming request.");
       Request * r = REQUEST_QUEUE.front();
       REQUEST_QUEUE.pop();
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
-
-      // TODO:
-      // GET CACHE LOCK
-      // CHECK CACHE FOR HIT
-      //    IF HIT && FRESH ->
-      //      UPDATE LAST ACCESS TIME
-      //      RETURN HIT
-      //    ELSE ->
-      //      MAKE REQUEST
-      // FREE CACHE LOCK
-
-      char ip[20];
-      hostnameToIp((char *) r->hostName.c_str(), ip);
-      string IP(ip);
-      log("Ip Address: " + IP);
-
-      int sock = getSocket();
-      connectSocket(sock, ip, (char *) HTTP_PORT);
-      addSocket(sock);
-      log("Connected to server.");
       string request = "GET " + r->pathName + " HTTP/1.0\r\n";
       request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
-      log("Making request " + request);
       request += "\r\n\r\n";
-      sendSock(sock, (char *) request.c_str());
-      log("Receiving response.");
-      char * out = recvSock(sock);
+      entry = checkCache(request);
+      if (entry) {
+        log("Cache hit.");
+        log("Sending response to browser.");
+        sendSock(r->getSock(), entry->toCharString());
+      } else {
+        log("Cache miss.");
+        char ip[20];
+        hostnameToIp((char *) r->hostName.c_str(), ip);
+        string IP(ip);
+        log("Ip Address: " + IP);
+        sock = getSocket();
+        connectSocket(sock, ip, (char *) HTTP_PORT);
+        addSocket(sock);
+        log("Making request " + request);
+        sendSock(sock, (char *) request.c_str());
+        log("Receiving response.");
+        char * out = recvSock(sock);
+        log("Caching HTTP response.");
+        string resp(out);
+        entry = new CacheEntry(request, resp);
+        addToCache(request, entry);
+        log("Sending response to browser.");
+        sendSock(r->getSock(), out);
+        free(out);
+      }
 
-      // TODO:
-      // GET CACHE LOCK
-      // CACHE RESPONSE MAPPED TO REQUEST STRING
-      // FREE CACHE LOCK
-
-      log("Sending response to browser.");
-      sendSock(r->getSock(), out);
-      free(out);
-      log("Closing server socket.");
       closeSocket(sock);
-      log("Closing client socket.");
       closeSocket(r->getSock());
       log("");
       delete r;
@@ -247,7 +241,6 @@ void * consumeRequest(void * info) {
 
 void addRequest(Request * request) {
   pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
-  log("Adding request to queue.");
   REQUEST_QUEUE.push(request);
   pthread_cond_signal(&CONSUME_COND);
   pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
@@ -256,7 +249,6 @@ void addRequest(Request * request) {
 
 Request * removeRequest() {
   pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
-  log("Removing request from queue.");
   Request * r = REQUEST_QUEUE.front();
   REQUEST_QUEUE.pop();
   pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
@@ -296,6 +288,20 @@ void closeOpenSockets() {
     close(SOCKET_VECTOR[i]);
   }
   SOCKET_VECTOR.clear();
+}
+
+void addToCache(string key, CacheEntry * value) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  HTTP_CACHE.add(key, value);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+}
+
+CacheEntry * checkCache(string key) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  CacheEntry * c;
+  c = HTTP_CACHE.get(key);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
+  return c;
 }
 
 void log(string message, sem_t lock) {

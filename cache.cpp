@@ -20,9 +20,27 @@ class Cache{
 	unordered_map<string, CacheEntry*>::iterator it;
 
 	public:
+		~Cache() {
+			for(it = cache.begin(); it != cache.end(); it++){
+				delete it->second;
+			}
+		}
 		bool checkFreshness(CacheEntry* entry, time_t currentTime){
 			// TODO CHANGE FROM ARBITRARY CONDITION
 			return currentTime - entry->getLastAccess() > 50;
+		}
+		void add(string key, CacheEntry * value) {
+			cache[key] = value;
+		}
+		CacheEntry * get(string key) {
+			if (cache.find(key) != cache.end()) {
+				cache[key] -> updateAccessTime();
+				return cache[key];
+			} else
+				return NULL;
+		}
+		unsigned size() {
+			return cache.size();
 		}
 		void replace(Request* request, CacheEntry* entry){
 			// unorder
@@ -59,11 +77,11 @@ class Cache{
 				// get the request string
 				while(getline(file, line)){
 					currentRequest+=line;
-					if(currentRequest.substr(currentRequest.length()-8) 
+					if(currentRequest.substr(currentRequest.length()-8)
 						== "\r\n\r\n"){
 						break;
 					}
-				} 
+				}
 				// get the CacheEntry
 				string header;
 				string body;
@@ -73,7 +91,7 @@ class Cache{
 				while(getline(file, line)){
 					// inbetween headers and body \r\n\r\n
 					header+=line;
-					if(header.substr(header.length()-8) == 
+					if(header.substr(header.length()-8) ==
 						"\r\n\r\n"){
 						break;
 					}
