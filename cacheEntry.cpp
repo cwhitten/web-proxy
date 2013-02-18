@@ -10,9 +10,7 @@ using namespace std;
 
 class CacheEntry {
 private:
-  std::string httpRequest;
-  std::string httpResponseHeaders;
-  std::string httpResponseBody;
+  char * cachedResponse;
   time_t entryTime;
   time_t lastAccessTime;
   int length;
@@ -92,64 +90,84 @@ private:
     return mktime(timeInfo);
   };
 
+  int parseContentLength(char * resp) {
+    string response(resp);
+    string length;
+    int ind = 0;
+    while (ind < strlen(response.c_str())) {
+      if (response.substr(ind, 16) != "Content-Length: ") {
+        ind++;
+      } else {
+        ind += 16;
+        while (ind < strlen(response.c_str()) && response[ind] != '\n') {
+          length += response[ind++];
+        }
+        return atoi(length.c_str());
+      }
+    }
+    return 0;
+  }
+
+  int parseHeaderLength(char * resp) {
+    string response(resp);
+    int ind = 0;
+    while (ind < strlen(response.c_str())) {
+      if (response.substr(ind, 4) == "\r\n\r\n") {
+        ind += 4;
+        break;
+      }
+      ind++;
+    }
+    return ind;
+  }
+
 public:
-  CacheEntry() {
-    httpRequest = "GET / HTTP/1.0";
-    time(&entryTime);
-    time(&lastAccessTime);
-  };
-
-  CacheEntry(std::string req, std::string res, int l) {
-    length = l;
-    httpRequest = req;
-    int i = 0;
-    while(res.substr(i, 4) != "\r\n\r\n") {
-      httpResponseHeaders += res[i++];
+  CacheEntry(char * response) {
+    length = parseContentLength(response);
+    if (length != 0) {
+      length += parseHeaderLength(response);
+    } else {
+      length = strlen(response);
     }
-    httpResponseBody = res.substr(i+4);
+    cachedResponse = new char[length];
+    for (unsigned i = 0; i < length; i++) {
+      cachedResponse[i] = response[i];
+    }
     time(&entryTime);
     time(&lastAccessTime);
   }
 
-  CacheEntry(std::string req, std::string res, std::string etime, std::string atime) {
-    httpRequest = req;
-    int i = 0;
-    while(res.substr(i, 4)!="\r\n"){
-      httpResponseHeaders+=res[i++];
+  CacheEntry(char * response, std::string eTime, std::string aTime) {
+    length = parseContentLength(response);
+    if (length != 0) {
+      length += parseHeaderLength(response);
+    } else {
+      length = strlen(response);
     }
-    httpResponseBody = res.substr(i+4);
-    entryTime = stringToTime(etime);
-    lastAccessTime = stringToTime(atime);
+    cachedResponse = new char[length + 1];
+    for (unsigned i = 0; i < length; i++) {
+      cachedResponse[i] = response[i];
+    }
+    entryTime = stringToTime(eTime);
+    lastAccessTime = stringToTime(aTime);
   }
 
-  CacheEntry(std::string req, std::string resHead, std::string resBody,
-             std::string etime, std::string atime) {
-    httpRequest = req;
-    httpResponseHeaders = resHead;
-    httpResponseBody = resBody;
-    entryTime = stringToTime(etime);
-    lastAccessTime = stringToTime(atime);
+  ~CacheEntry() {
+    delete [] cachedResponse;
   }
 
   void updateAccessTime() {
     time(&lastAccessTime);
   }
 
-  std::string toString() {
-    return  httpResponseHeaders + "\r\n\r\n" +
-            httpResponseBody + "\r\n\r\n" +
-            timeToString(entryTime) + '\n' +
-            timeToString(lastAccessTime) + '\n';
+  char * getCharString() {
+    return cachedResponse;
   }
-  char * toCharString() {
-    std::string output = httpResponseHeaders + "\r\n\r\n" + httpResponseBody;
-    char * out = new char[strlen(output.c_str())];
-    strcpy(out, output.c_str());
-    return out;
-  }
+
   int getLength() {
     return length;
   }
+
   time_t getLastAccess(){
     return lastAccessTime;
   }
