@@ -8,6 +8,7 @@ using namespace std::tr1;
 class Response {
   private:
     unordered_map<string, string> headers;
+
     void parseHeaders(string s) {
       vector<string> lines;
       string tmp;
