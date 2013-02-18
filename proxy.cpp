@@ -35,11 +35,13 @@ const char * DELIM = "\n";
 // Global data structures
 queue<Request *> REQUEST_QUEUE;
 vector<int> SOCKET_VECTOR;
+Cache HTTP_CACHE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
 pthread_mutex_t SOCKET_VECTOR_LOCK;
 pthread_mutex_t REQUEST_QUEUE_LOCK;
+pthread_mutex_t HTTP_CACHE_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
@@ -110,6 +112,7 @@ int main(int argc, char * argv[]) {
   sem_init(&LOGGING_LOCK, 0, 1);
   pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
   pthread_mutex_init(&SOCKET_VECTOR_LOCK, NULL);
+  pthread_mutex_init(&HTTP_CACHE_LOCK, NULL);
 
   // Blank log so we know when we started
   log("");
