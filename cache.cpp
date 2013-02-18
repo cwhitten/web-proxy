@@ -1,7 +1,11 @@
+#ifndef CACHE
+#define CACHE
+
 #include <tr1/unordered_map>
 #include <iostream>
 #include <pthread.h>
 #include <fstream>
+
 #include "request.cpp"
 #include "cacheEntry.cpp"
 #include "time.h"
@@ -93,3 +97,5 @@ class Cache{
 		}
 
 };
+
+#endif

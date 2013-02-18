@@ -18,6 +18,7 @@ using namespace std;
 #include "cacheEntry.cpp"
 #include "network.cpp"
 #include "request.cpp"
+#include "cache.cpp"
 
 // Program constants
 const int MAX_THREADS = 50;
@@ -34,11 +35,13 @@ const char * DELIM = "\n";
 // Global data structures
 queue<Request *> REQUEST_QUEUE;
 vector<int> SOCKET_VECTOR;
+Cache HTTP_CACHE;
 
 // Synchronization locks
 sem_t LOGGING_LOCK;
 pthread_mutex_t SOCKET_VECTOR_LOCK;
 pthread_mutex_t REQUEST_QUEUE_LOCK;
+pthread_mutex_t HTTP_CACHE_LOCK;
 pthread_cond_t CONSUME_COND = PTHREAD_COND_INITIALIZER;
 
 struct threadInfo {
@@ -64,7 +67,9 @@ void addRequest(Request * request);
 Request * removeRequest();
 
 // Clear all the remaining requests from the request queue
-// and make sure to dellocate dynamic memory
+// and make sure to dellocate dynamic memory. This is not
+// thread synchronized because it is called when exiting
+// the program regardless of thread state.
 void clearRequestQueue();
 
 // Function that each thread will constantly be executing
@@ -83,7 +88,9 @@ void closeSocket(int sock);
 
 // Function to close all remaining open sockets. This will be
 // executed when the program returns, is closed, or closes on
-// error. This method is thread safe.
+// error. This method is not thread synchronized because it is
+// called on closing the program regardless of the state of the
+// threads.
 void closeOpenSockets();
 
 // Generic function to log messages about the proxy. This
@@ -109,6 +116,7 @@ int main(int argc, char * argv[]) {
   sem_init(&LOGGING_LOCK, 0, 1);
   pthread_mutex_init(&REQUEST_QUEUE_LOCK, NULL);
   pthread_mutex_init(&SOCKET_VECTOR_LOCK, NULL);
+  pthread_mutex_init(&HTTP_CACHE_LOCK, NULL);
 
   // Blank log so we know when we started
   log("");
@@ -122,6 +130,9 @@ int main(int argc, char * argv[]) {
 
   // Bind returnHandler() to return/exit event
   atexit(returnHandler);
+
+  // TODO:
+  // BUILD CACHE FROM DISK
 
   // Initialize socket
   log("Initializing socket.");
@@ -145,7 +156,7 @@ int main(int argc, char * argv[]) {
     log("Accepted connection.");
     request = recvRequest(clientSock);
     string req(request);
-    if (req != "") {
+    if (strlen(req.c_str()) > 0) {
       log("Received non-empty request.");
       log(req);
       delete [] request;
@@ -153,11 +164,9 @@ int main(int argc, char * argv[]) {
     } else {
       log("Ignoring empty request.");
     }
-    log("Closing client socket.");
-    closeSocket(clientSock);
   }
 
-  log("Closing socket.");
+  log("Closing proxy socket.");
   closeSocket(sock);
   log("");
   return 0;
@@ -189,6 +198,16 @@ void * consumeRequest(void * info) {
       log("Hostname: " + r->hostName);
       log("Path: " + r->pathName);
 
+      // TODO:
+      // GET CACHE LOCK
+      // CHECK CACHE FOR HIT
+      //    IF HIT && FRESH ->
+      //      UPDATE LAST ACCESS TIME
+      //      RETURN HIT
+      //    ELSE ->
+      //      MAKE REQUEST
+      // FREE CACHE LOCK
+
       char ip[20];
       hostnameToIp((char *) r->hostName.c_str(), ip);
       string IP(ip);
@@ -196,6 +215,7 @@ void * consumeRequest(void * info) {
 
       int sock = getSocket();
       connectSocket(sock, ip, (char *) HTTP_PORT);
+      addSocket(sock);
       log("Connected to server.");
       string request = "GET " + r->pathName + " HTTP/1.0\r\n";
       request += "Host: " + r->hostName + "\r\nUser-Agent: TEST 0.1";
@@ -204,11 +224,19 @@ void * consumeRequest(void * info) {
       sendSock(sock, (char *) request.c_str());
       log("Receiving response.");
       char * out = recvSock(sock);
+
+      // TODO:
+      // GET CACHE LOCK
+      // CACHE RESPONSE MAPPED TO REQUEST STRING
+      // FREE CACHE LOCK
+
       log("Sending response to browser.");
       sendSock(r->getSock(), out);
       free(out);
       log("Closing server socket.");
-      close(sock);
+      closeSocket(sock);
+      log("Closing client socket.");
+      closeSocket(r->getSock());
       log("");
       delete r;
     }
@@ -236,7 +264,6 @@ Request * removeRequest() {
 }
 
 void clearRequestQueue() {
-  pthread_mutex_lock(&REQUEST_QUEUE_LOCK);
   log("Clearing request queue.");
   Request * r;
   while (!REQUEST_QUEUE.empty()) {
@@ -244,7 +271,6 @@ void clearRequestQueue() {
     REQUEST_QUEUE.pop();
     delete r;
   }
-  pthread_mutex_unlock(&REQUEST_QUEUE_LOCK);
 }
 
 void addSocket(int sock) {
@@ -265,13 +291,11 @@ void closeSocket(int sock) {
 }
 
 void closeOpenSockets() {
-  pthread_mutex_lock(&SOCKET_VECTOR_LOCK);
   log("Closing all open sockets.");
   for (unsigned i = 0; i < SOCKET_VECTOR.size(); i++) {
     close(SOCKET_VECTOR[i]);
   }
   SOCKET_VECTOR.clear();
-  pthread_mutex_unlock(&SOCKET_VECTOR_LOCK);
 }
 
 void log(string message, sem_t lock) {
@@ -316,5 +340,7 @@ void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
   closeOpenSockets();
+  // TODO:
+  // DUMP CACHE TO DISK
   log("Exiting.");
 }
