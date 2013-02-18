@@ -122,6 +122,21 @@ void sendSock(int sock, char * msg) {
   }
 }
 
+void sendSock(int sock, char * msg, int bytesToSend) {
+  int BYTES = bytesToSend;
+  int bytesSent = 0, totalBytesSent = 0;
+  while (bytesToSend > 0) {
+    bytesSent = send(sock, msg, bytesToSend, 0);
+    if (bytesSent < 0) {
+      cerr << "Error sending request." << endl;
+      exit(-1);
+    }
+    totalBytesSent += bytesSent;
+    bytesToSend -= bytesSent;
+    msg += bytesSent;
+  }
+}
+
 // Receive response from socket. This method loops and receives response
 // until the server explicity closes the socket (recv returns zero)
 char * recvSock(int sock) {
@@ -159,26 +174,29 @@ char * recvSock(int sock) {
 // 100 bytes while looking for a \n delimeter. Once the delimeter
 // is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
-  int size = 0;
-  char * buffer = new char[1000], * rBuffer = NULL;
-  int n = recv(sock, (void *) buffer, 1000, 0);
-  if (n < 0) {
-    cerr << "Error receiving from socket." << endl;
-    delete [] buffer;
-    exit(-1);
-  }
-  for (int i = 0; i < n; i++) {
-    if (buffer[i] == 'P' && buffer[i - 1] == 'T' &&
-        buffer[i - 2] == 'T' && buffer[i - 3] == 'H') {
-      buffer[i] == '\0';
-      size = i;
-      break;
+  char * buff = new char[1000], * received = NULL;
+  int n = 0, size = 0;
+  while (true) {
+    n = recv(sock, buff + size, 1, 0);
+    if (n < 0) {
+      cerr << "Error receiving from socket." << endl;
+      delete [] buff;
+      exit(-1);
+    }
+    if (buff[size - 1] == '\n') {
+      received = new char[size];
+      strncpy(received, buff, size - 2);
+      delete [] buff;
+      return received;
+    }
+    size += n;
+    if (size >= 1000) {
+      cerr << "Improper request." << endl;
+      delete [] buff;
+      return NULL;
     }
   }
-  rBuffer = new char[size];
-  strncpy(rBuffer, buffer, size);
-  delete [] buffer;
-  return rBuffer;
 }
 
 #endif
+
