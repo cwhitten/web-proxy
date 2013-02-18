@@ -233,7 +233,7 @@ void * consumeRequest(void * info) {
         log("Receiving response.");
         char * out = recvSock(sock);
 
-        // Cache response
+        // Cache response (will be freed by Cache destructor)
         log("Caching HTTP response.");
         string resp(out);
         entry = new CacheEntry(request, resp);
