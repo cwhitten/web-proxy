@@ -93,6 +93,9 @@ void closeSocket(int sock);
 // threads.
 void closeOpenSockets();
 
+void addToCache(string key, CacheEntry * value);
+CacheEntry * checkCache(string key);
+
 // Generic function to log messages about the proxy. This
 // will either write to a file or the stdout, haven't
 // decided yet
@@ -296,6 +299,12 @@ void closeOpenSockets() {
     close(SOCKET_VECTOR[i]);
   }
   SOCKET_VECTOR.clear();
+}
+
+void addToCache(string key, CacheEntry * value) {
+  pthread_mutex_lock(&HTTP_CACHE_LOCK);
+  HTTP_CACHE.add(key, value);
+  pthread_mutex_unlock(&HTTP_CACHE_LOCK);
 }
 
 void log(string message, sem_t lock) {

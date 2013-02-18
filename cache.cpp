@@ -24,6 +24,12 @@ class Cache{
 			// TODO CHANGE FROM ARBITRARY CONDITION
 			return currentTime - entry->getLastAccess() > 50;
 		}
+		void add(string key, CacheEntry * value) {
+			cache[key] = value;
+		}
+		unsigned size() {
+			return cache.size();
+		}
 		void replace(Request* request, CacheEntry* entry){
 			// unorder
 			CacheEntry* minEntry = cache.begin()->second;
@@ -59,11 +65,11 @@ class Cache{
 				// get the request string
 				while(getline(file, line)){
 					currentRequest+=line;
-					if(currentRequest.substr(currentRequest.length()-8) 
+					if(currentRequest.substr(currentRequest.length()-8)
 						== "\r\n\r\n"){
 						break;
 					}
-				} 
+				}
 				// get the CacheEntry
 				string header;
 				string body;
@@ -73,7 +79,7 @@ class Cache{
 				while(getline(file, line)){
 					// inbetween headers and body \r\n\r\n
 					header+=line;
-					if(header.substr(header.length()-8) == 
+					if(header.substr(header.length()-8) ==
 						"\r\n\r\n"){
 						break;
 					}
