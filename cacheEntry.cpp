@@ -168,6 +168,10 @@ public:
     return length;
   }
 
+  bool isCacheable() {
+    return false;
+  }
+
   time_t getLastAccess(){
     return lastAccessTime;
   }
