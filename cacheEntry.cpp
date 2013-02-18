@@ -6,6 +6,8 @@
 #include "string.h"
 #include "time.h"
 
+using namespace std;
+
 class CacheEntry {
 private:
   std::string httpRequest;
@@ -91,10 +93,11 @@ private:
 
   string parseHeaders(string s) {
     // get the CacheEntry
+    int i = 0;
     string header;
-    int index = 0;
-    while (index < strlen(s.c_str())) {
-      header += s[index++];
+    string body;
+    while(s.substr(i, 8)!="\r\n\r\n"){
+      header+=s[i];
     }
   }
 
@@ -111,16 +114,22 @@ public:
 
   CacheEntry(std::string req, std::string res) {
     httpRequest = req;
-    httpResponseHeaders = parseHeaders(res);
-    httpResponseBody = parseBody(res);
+    int i = 0;
+    while(res.substr(i, 8)!="\r\n\r\n"){
+      httpResponseHeaders+=res[i];
+    }
+    httpResponseBody = res.substr(i+8);
     time(&entryTime);
     time(&lastAccessTime);
   }
 
   CacheEntry(std::string req, std::string res, std::string etime, std::string atime) {
     httpRequest = req;
-    httpResponseHeaders = parseHeaders(res);
-    httpResponseBody = parseBody(res);
+    int i = 0;
+    while(res.substr(i, 8)!="\r\n\r\n"){
+      httpResponseHeaders+=res[i];
+    }
+    httpResponseBody = res.substr(i+8);
     entryTime = stringToTime(etime);
     lastAccessTime = stringToTime(atime);
   }
