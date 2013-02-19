@@ -26,6 +26,7 @@ const int MAX_THREADS = 50;
 const int MAX_PENDING = 5;
 const bool LOG_TO_FILE = true;
 const char * LOG_FILE_NAME = "proxy.log";
+const char * CACHE_FILE_NAME = "cache_state.txt";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
@@ -372,6 +373,6 @@ void returnHandler() {
   clearRequestQueue();
   closeOpenSockets();
   log("Dumping cache to disk");
-  HTTP_CACHE.dumpToFile((char*)"cache_state.txt");
+  HTTP_CACHE.dumpToFile((char*) CACHE_FILE_NAME);
   log("Exiting.");
 }
