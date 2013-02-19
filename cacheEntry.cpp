@@ -90,65 +90,37 @@ private:
     return mktime(timeInfo);
   };
 
-  int parseContentLength(char * resp) {
+  int parseLength(char * resp) {
     string response(resp);
     string length;
-    int ind = 0;
-    while (ind < strlen(response.c_str())) {
-      if (response.substr(ind, 16) != "Content-Length: ") {
-        ind+= 16;
-      } else {
-        ind += 16;
-        while (ind < strlen(response.c_str()) && response[ind] != '\n') {
-          length += response[ind++];
-        }
-        return atoi(length.c_str());
-      }
+    unsigned limit = response.find("\r\n\r\n");
+    unsigned found = response.find("Content-Length: ");
+    if (found == std::string::npos || found >= limit) {
+      return (int) response.length();
     }
-    return 0;
-  }
-
-  int parseHeaderLength(char * resp) {
-    string response(resp);
-    int ind = 0;
-    while (ind < strlen(response.c_str())) {
-      if (response.substr(ind, 4) == "\r\n\r\n") {
-        ind += 4;
-        break;
-      }
-      ind += 4;
-    }
-    return ind;
+    found += 16;
+    while (response[found] != '\n' && found < response.length())
+      length += response[found++];
+    found = response.find("\r\n\r\n");
+    return found + atoi(length.c_str()); 
   }
 
   string parseContentType(char * resp) {
     string response(resp);
-    string result = "";
-    int ind = 0;
-    while (ind < strlen(response.c_str())) {
-      if (response.substr(ind, 14) == "Content-Type: ") {
-        ind += 14;
-        while (ind < strlen(response.c_str()) && response[ind] != '\n') {
-          result += response[ind++];
-        }
-        return result;
-      } else {
-        ind += 14;
-      }
-    }
-    return "";
+    string content;
+    unsigned limit = response.find("\r\n\r\n");
+    unsigned found = response.find("Content-Type: ");
+    if (found == std::string::npos || found >= limit)
+      return "";
+    found += 14;
+    while (response[found] != '\n')
+      content += response[found++];
+    return content;
   }
 
 public:
   CacheEntry(char * response) {
-    cout << "About to get length" << endl;
-    length = parseContentLength(response);
-    if (length != 0) {
-      length += parseHeaderLength(response);
-    } else {
-      length = strlen(response);
-    }
-    cout << length << endl;
+    length = parseLength(response);
     cachedResponse = new char[length];
     for (unsigned i = 0; i < length; i++) {
       cachedResponse[i] = response[i];
@@ -158,12 +130,7 @@ public:
   }
 
   CacheEntry(char * response, std::string eTime, std::string aTime) {
-    length = parseContentLength(response);
-    if (length != 0) {
-      length += parseHeaderLength(response);
-    } else {
-      length = strlen(response);
-    }
+    length = parseLength(response);
     cachedResponse = new char[length + 1];
     for (unsigned i = 0; i < length; i++) {
       cachedResponse[i] = response[i];
@@ -186,6 +153,12 @@ public:
 
   int getLength() {
     return length;
+  }
+
+  bool isFresh() {
+    int entrySeconds = entryTime;
+    int nowSeconds = time(NULL);
+    return nowSeconds - entrySeconds < 10000;
   }
 
   bool isCacheable() {

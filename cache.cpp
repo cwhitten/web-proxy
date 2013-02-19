@@ -25,34 +25,38 @@ class Cache{
 				delete it->second;
 			}
 		}
-		bool checkFreshness(CacheEntry* entry, time_t currentTime){
-			// TODO CHANGE FROM ARBITRARY CONDITION
-			return currentTime - entry->getLastAccess() > 50;
-		}
 		void add(string key, CacheEntry * value) {
+      if (cache.size() > 40) {
+        lru();
+      }
 			cache[key] = value;
 		}
 		CacheEntry * get(string key) {
 			if (cache.find(key) != cache.end()) {
-				cache[key] -> updateAccessTime();
-				return cache[key];
-			} else
-				return NULL;
+        if (cache[key]->isFresh()) {
+				  cache[key] -> updateAccessTime();
+				  return cache[key];
+        } else {
+          delete cache[key];
+          cache.erase(key);
+        }
+      }
+			return NULL;
 		}
 		unsigned size() {
 			return cache.size();
 		}
-		void replace(Request* request, CacheEntry* entry){
-			// unorder
+		void lru(){
 			CacheEntry* minEntry = cache.begin()->second;
 			string minRequest = cache.begin()->first;
 			for(it = cache.begin(); it != cache.end(); it++){
-				if(it->second->getLastAccess() < minEntry->getLastAccess()){
+        if(it->second->getLastAccess() < minEntry->getLastAccess()){
 					minRequest = it->first;
 					minEntry = it->second;
 				}
 			}
 			cache.erase(minRequest);
+      delete minEntry;
 		}
 		// dump to file
 		bool dumpToFile(char* fileName){

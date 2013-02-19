@@ -1,34 +1,22 @@
 Authors: Josh Gummersall, Chris Whitten, Ken Ordona
 
 Description:
-  
-  This program allows you to connect to a web host at a specific port and send a simple 
-  HTTP request to that web host. For example, you can connect to www.google.com:80 and 
-  send the following request:
-      GET / HTTP/1.0
+This proxy server sits on a machine and listens to requests. It then forwards
+those requests and responds with the response from the server the packets were
+forwarder to.
+
+Cache Details:
+-Caching replacement is handled by the LRU algorithm
+-The TTL is set to 1000 seconds
+-Cache is built on the unordered_map data structure for constant lookup time
+-Cache is not persistent (ran out of time)
+
+Known Limitations:
+We run out of sockets after 100 requests because of a bug with how they are closed in pthreads
+Caching is not persistent (ran out of time)
 
 Use:
-
-  -Run "make" to compile the source code
-
-  -Type "./proxy <host_name> <port>"
-    (Note 1: valid example of <host_name> is: www.google.com LEAVE OUT HTTP,
-    HTTPS, FTP, etc. HTTP is assumed)
-
-    (Note 2: if you leave out <host_name> AND <port> the program will connect to
-    www.google.com on port 80 by default)
-
-  -Input an HTTP request such as: "GET / HTTP/1.0" and press enter ONCE 
-    (Note: the extra \r\n\r\n is appended to the request you type in before the request 
-    is sent.)
-
-  -The program will print out the response in the following format:
-    <HEADERS>
-
-    <HTML RESPONSE>
-
-  -It is up to the user to input a valid host name, port, and request
-
-  -Program assumes the server you connect to will close the socket when the
-  response is complete
+-Run "make" to compile the source code
+-Run ./proxy to run the proxy server
+-Proxy listens on whatever port SERV_PORT is set to in proxy.cpp
 
