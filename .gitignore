@@ -5,3 +5,4 @@ proxy
 *.sublime*
 .DS_Store
 *.dSYM
+*.txt

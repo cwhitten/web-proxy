@@ -371,7 +371,7 @@ void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
   closeOpenSockets();
-  // TODO:
-  // DUMP CACHE TO DISK
+  log("Dumping cache to disk");
+  HTTP_CACHE.dumpToFile((char*)"cache_state.txt");
   log("Exiting.");
 }

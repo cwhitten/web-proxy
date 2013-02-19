@@ -58,10 +58,10 @@ class Cache{
 		bool dumpToFile(char* fileName){
 			ofstream file;
 			file.open(fileName);
-			file << cache.size() << endl;
+			file << cache.size() << '\n';
 			for(it = cache.begin(); it != cache.end(); it++){
-				file << it->first + "\n";
-				file << it->second->getCharString();
+				file << it->first + '\n';
+				file << it->second->getCharString() + '\n';
 			}
 			return true;
 		}
