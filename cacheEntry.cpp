@@ -96,7 +96,7 @@ private:
     int ind = 0;
     while (ind < strlen(response.c_str())) {
       if (response.substr(ind, 16) != "Content-Length: ") {
-        ind++;
+        ind+= 16;
       } else {
         ind += 16;
         while (ind < strlen(response.c_str()) && response[ind] != '\n') {
@@ -116,7 +116,7 @@ private:
         ind += 4;
         break;
       }
-      ind++;
+      ind += 4;
     }
     return ind;
   }
@@ -133,7 +133,7 @@ private:
         }
         return result;
       } else {
-        ind++;
+        ind += 14;
       }
     }
     return "";
@@ -141,12 +141,14 @@ private:
 
 public:
   CacheEntry(char * response) {
+    cout << "About to get length" << endl;
     length = parseContentLength(response);
     if (length != 0) {
       length += parseHeaderLength(response);
     } else {
       length = strlen(response);
     }
+    cout << length << endl;
     cachedResponse = new char[length];
     for (unsigned i = 0; i < length; i++) {
       cachedResponse[i] = response[i];
