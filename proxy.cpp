@@ -169,7 +169,6 @@ int main(int argc, char * argv[]) {
       log(req);
       if (strlen(req.c_str()) > 0) {
         log("Received non-empty request.");
-        log(req);
         delete [] request;
         addRequest(new Request(req, clientSock));
       } else {

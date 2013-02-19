@@ -183,6 +183,7 @@ char * recvRequest(int sock) {
       delete [] buff;
       exit(-1);
     }
+    size += n;
     if (buff[size - 1] == '\n') {
       received = new char[size];
       for (unsigned i = 0; i < size - 1; i++) {
@@ -191,10 +192,8 @@ char * recvRequest(int sock) {
       delete [] buff;
       return received;
     }
-    size += n;
     if (n == 0 || size >= 700) {
       cerr << "Improper request." << endl;
-      cout << buff << endl;
       delete [] buff;
       return NULL;
     }
