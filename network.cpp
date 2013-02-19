@@ -174,7 +174,7 @@ char * recvSock(int sock) {
 // 100 bytes while looking for a \n delimeter. Once the delimeter
 // is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
-  char * buff = new char[1000], * received = NULL;
+  char * buff = new char[700], * received = NULL;
   int n = 0, size = 0;
   while (true) {
     n = recv(sock, buff + size, 1, 0);
@@ -185,13 +185,16 @@ char * recvRequest(int sock) {
     }
     if (buff[size - 1] == '\n') {
       received = new char[size];
-      strncpy(received, buff, size - 2);
+      for (unsigned i = 0; i < size - 1; i++) {
+        received[i] = buff[i];
+      }
       delete [] buff;
       return received;
     }
     size += n;
-    if (size >= 1000) {
+    if (n == 0 || size >= 700) {
       cerr << "Improper request." << endl;
+      cout << buff << endl;
       delete [] buff;
       return NULL;
     }
