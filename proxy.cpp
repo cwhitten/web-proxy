@@ -156,16 +156,25 @@ int main(int argc, char * argv[]) {
   while (true) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
+    log("Accepted connection.");
     addSocket(clientSock);
+    log("Reading request.");
     request = recvRequest(clientSock);
-    string req(request);
-    if (strlen(req.c_str()) > 0) {
-      log("Received non-empty request.");
-      log(req);
-      delete [] request;
-      addRequest(new Request(req, clientSock));
+    log("Got request.");
+    if (request == NULL) {
+      log("Ignoring NULL request.");
+      closeSocket(clientSock);
     } else {
-      log("Ignoring empty request.");
+      string req(request);
+      log(req);
+      if (strlen(req.c_str()) > 0) {
+        log("Received non-empty request.");
+        delete [] request;
+        addRequest(new Request(req, clientSock));
+      } else {
+        log("Ignoring empty request.");
+        closeSocket(clientSock);
+      }
     }
   }
 
