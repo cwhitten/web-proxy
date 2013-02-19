@@ -123,7 +123,6 @@ void sendSock(int sock, char * msg) {
 }
 
 void sendSock(int sock, char * msg, int bytesToSend) {
-  int BYTES = bytesToSend;
   int bytesSent = 0, totalBytesSent = 0;
   while (bytesToSend > 0) {
     bytesSent = send(sock, msg, bytesToSend, 0);
