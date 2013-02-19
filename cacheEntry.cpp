@@ -121,6 +121,24 @@ private:
     return ind;
   }
 
+  string parseContentType(char * resp) {
+    string response(resp);
+    string result = "";
+    int ind = 0;
+    while (ind < strlen(response.c_str())) {
+      if (response.substr(ind, 14) == "Content-Type: ") {
+        ind += 14;
+        while (ind < strlen(response.c_str()) && response[ind] != '\n') {
+          result += response[ind++];
+        }
+        return result;
+      } else {
+        ind++;
+      }
+    }
+    return "";
+  }
+
 public:
   CacheEntry(char * response) {
     length = parseContentLength(response);
@@ -169,7 +187,8 @@ public:
   }
 
   bool isCacheable() {
-    return false;
+    string contentType = parseContentType(cachedResponse);
+    return contentType.find("text") == std::string::npos;
   }
 
   time_t getLastAccess(){
