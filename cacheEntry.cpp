@@ -93,12 +93,14 @@ private:
   int parseLength(char * resp) {
     string response(resp);
     string length;
-    unsigned limit = response.find("\r\n\r\n");
-    unsigned found = response.find("Content-Length: ");
+    string contentLength = "Content-Length: ";
+    string breaker = "\r\n\r\n";
+    unsigned limit = response.find(breaker);
+    unsigned found = response.find(contentLength);
     if (found == std::string::npos || found >= limit) {
-      return (int) response.length();
+      return response.length();
     }
-    found += 16;
+    found += contentLength.length();
     while (response[found] != '\n' && found < response.length())
       length += response[found++];
     found = response.find("\r\n\r\n");
@@ -118,13 +120,21 @@ private:
     return content;
   }
 
+  void replaceHttpProtocol() {
+    if (length > 10) {
+      cachedResponse[7] = '0';
+    }
+  }
+
 public:
   CacheEntry(char * response) {
     length = parseLength(response);
-    cachedResponse = new char[length];
+    cachedResponse = new char[length + 1];
     for (unsigned i = 0; i < length; i++) {
       cachedResponse[i] = response[i];
     }
+    cachedResponse[length] = '\0';
+    replaceHttpProtocol();
     time(&entryTime);
     time(&lastAccessTime);
   }

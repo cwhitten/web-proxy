@@ -14,6 +14,7 @@
 using namespace std;
 
 const int BUF_SIZE = 80000;
+const int MAX_REQUEST_SIZE = 2000;
 
 // Converts host name into server IP address
 void hostnameToIp(char* host, char* ip) {
@@ -21,7 +22,6 @@ void hostnameToIp(char* host, char* ip) {
   struct in_addr ** addr_list;
   if (he == NULL) {
     cerr << "Hostname cannot be resolved." << endl;
-    exit(-1);
   }
   addr_list = (struct in_addr **) he->h_addr_list;
   strcpy(ip, inet_ntoa(*addr_list[0]));
@@ -38,7 +38,6 @@ int getSocket() {
   int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock < 0) {
     cerr << "Error with socket process." << endl;
-    exit(-1);
   }
   return sock;
 }
@@ -49,7 +48,6 @@ unsigned long getServer(char* addr) {
   int status = inet_pton(AF_INET, addr, &servIP);
   if (status <= 0) {
     cerr << "Error Occured with server IP process." << endl;
-    exit(-1);
   }
   return servIP;
 }
@@ -65,7 +63,6 @@ void connectSocket(int sock, char* addr, char* port) {
       sizeof(servAddr));
   if (status < 0) {
     cerr << "Error with connect process." << endl;
-    exit(-1);
   }
 }
 
@@ -81,7 +78,6 @@ void bindSocket(int sock, char* servPort) {
                             sizeof(servAddr));
   if (status < 0) {
     cerr << "Error with bind" << endl;
-    exit(-1);
   }
 }
 
@@ -90,7 +86,6 @@ void listenSocket(int sock, int numPending) {
   int status = listen(sock, numPending);
   if (status < 0) {
     cerr << "Error with listen" << endl;
-    exit(-1);
   }
 }
 
@@ -102,24 +97,8 @@ int acceptSocket(int sock) {
                           &addrLen);
   if (clientSock < 0) {
     cerr << "Error with accept process." << endl;
-    exit(-1);
   }
   return clientSock;
-}
-
-// Send msg to sock ensuring to resend if the entire message is not sent
-void sendSock(int sock, char * msg) {
-  int bytesToSend = strlen(msg), bytesSent = 0, totalBytesSent = 0;
-  while (bytesToSend > 0) {
-    bytesSent = send(sock, msg, bytesToSend, 0);
-    if (bytesSent < 0) {
-      cerr << "Error sending request." << endl;
-      exit(-1);
-    }
-    totalBytesSent += bytesSent;
-    bytesToSend -= bytesSent;
-    msg += bytesSent;
-  }
 }
 
 void sendSock(int sock, char * msg, int bytesToSend) {
@@ -127,8 +106,7 @@ void sendSock(int sock, char * msg, int bytesToSend) {
   while (bytesToSend > 0) {
     bytesSent = send(sock, msg, bytesToSend, 0);
     if (bytesSent < 0) {
-      cerr << "Error sending request." << endl;
-      exit(-1);
+      return;
     }
     totalBytesSent += bytesSent;
     bytesToSend -= bytesSent;
@@ -150,14 +128,12 @@ char * recvSock(int sock) {
       newbuffer = (char *) realloc(buffer, len);
       if (!newbuffer) {
         free(buffer);
-        cerr << "Out of memory." << endl;
         return NULL;
       }
       buffer = newbuffer;
     }
     n = recv(sock, buffer + pos, len - pos, 0);
     if (n < 0) {
-      cerr << "Error receiving from socket." << endl;
       free(buffer);
       return NULL;
     }
@@ -173,29 +149,41 @@ char * recvSock(int sock) {
 // 100 bytes while looking for a \n delimeter. Once the delimeter
 // is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
-  char * buff = new char[700], * received = NULL;
-  int n = 0, size = 0;
+  char * buffer = NULL, * newbuffer;
+  int pos = 0, len = 0, found = 0;
+  int i, n;
+  bool first = false;
+
   while (true) {
-    n = recv(sock, buff + size, 1, 0);
-    if (n < 0) {
-      cerr << "Error receiving from socket." << endl;
-      delete [] buff;
-      exit(-1);
-    }
-    size += n;
-    if (buff[size - 1] == '\n') {
-      received = new char[size];
-      for (unsigned i = 0; i < size - 1; i++) {
-        received[i] = buff[i];
+    if (pos == len) {
+      len = len ? len << 1 : 4;
+      if (len >= MAX_REQUEST_SIZE) {
+        free(buffer);
+        return NULL;
       }
-      delete [] buff;
-      return received;
+      newbuffer = (char *) realloc(buffer, len);
+      if (!newbuffer) {
+        free(buffer);
+        return NULL;
+      }
+      buffer = newbuffer;
     }
-    if (n == 0 || size >= 700) {
-      cerr << "Improper request." << endl;
-      delete [] buff;
+    n = recv(sock, buffer + pos, len - pos, 0);
+    if (n < 0) {
+      free(buffer);
       return NULL;
     }
+    if (n == 0) {
+      free(buffer);
+      return NULL;
+    }
+    for (unsigned i = pos; i < pos + n; i++) {
+      if (buffer[i] == '\n') {
+        buffer[i] = '\0';
+        return buffer;
+      }
+    }
+    pos += n;
   }
 }
 
