@@ -26,7 +26,7 @@ class Cache{
 			}
 		}
 		void add(string key, CacheEntry * value) {
-      if (cache.size() > 40) {
+      if (cache.size() > 5) {
         lru();
       }
 			cache[key] = value;

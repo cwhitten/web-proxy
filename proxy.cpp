@@ -30,7 +30,7 @@ const char * CACHE_FILE_NAME = "cache_state.txt";
 const int EXIT_SIGNAL = 2;
 const int OK_CODE = 1;
 const int BAD_CODE = -1;
-const char * SERV_PORT = "10205";
+const char * SERV_PORT = "10202";
 const char * HTTP_PORT = "80";
 
 // Global data structures
@@ -127,27 +127,23 @@ int main(int argc, char * argv[]) {
 
   int clientSock;
   char * request;
+  Request * tempRequest;
   log("Starting proxy server...");
 
   while (true) {
     log("Listening for a connection.");
     clientSock = acceptSocket(sock);
-    log("Accepted connection from socket");
-    log("Reading request.");
+    log("Accepted client connection.");
     request = recvRequest(clientSock);
-    log("Got request.");
     if (request == NULL) {
-      log("Ignoring NULL request.");
+      log("Ignoring invalid request.");
       close(clientSock);
+      free(request);
     } else {
       string req(request);
-      delete [] request;
-      if (req.length() > 0 && clientSock > 0) {
-        addRequest(new Request(req, clientSock));
-      } else {
-        log("Ignoring empty request.");
-        close(clientSock);
-      }
+      tempRequest = new Request(req, clientSock);
+      addRequest(tempRequest);
+      free(request);
     }
   }
 
@@ -182,6 +178,7 @@ void * consumeRequest(void * info) {
     pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
     if (!REQUEST_QUEUE.empty()) {
       r = REQUEST_QUEUE.front();
+      REQUEST_QUEUE.pop();
     }
     pthread_cond_signal(&CONSUME_COND);
 
@@ -205,35 +202,38 @@ void * consumeRequest(void * info) {
         hostnameToIp((char *) r->hostName.c_str(), ip);
         sock = getSocket();
         connectSocket(sock, ip, (char *) HTTP_PORT);
+
+        log("Sending request.");
         // Make request of server and get response
-        sendSock(sock, (char *) request.c_str());
+        sendSock(sock, (char *) request.c_str(), request.length());
+
         log("Receiving response.");
         char * out = recvSock(sock);
         if (out == NULL) {
           log("Error receiving from socket.");
         }
+        close(sock);
+
         // Cache response (will be freed by Cache destructor)
         log("Caching HTTP response.");
         entry = new CacheEntry(out);
         free(out);
-        addToCache(request, entry);
         // Send response to browser
         log("Sending response to browser.");
         sendSock(r->getSock(), entry->getCharString(), entry->getLength());
-        close(sock);
+        addToCache(request, entry);
       }
-      
-      shutdown(r->getSock(), 2);
-      if (r != NULL) delete r;
+
+      close(r->getSock());
+      delete r;
+      r = NULL;
     }
   }
   return NULL;
 }
 
 string buildRequest(string host, string path) {
-  return  "GET " + path + " HTTP/1.0\n" +
-          "Host: " + host + "\n" +
-          "User-Agent: TEST" + "\r\n\r\n";
+  return  "GET " + path + " HTTP/1.0\n" + "Host: " + host + "\r\n\r\n";
 }
 
 void addRequest(Request * request) {
