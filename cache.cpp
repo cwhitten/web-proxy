@@ -10,6 +10,7 @@
 #include "cacheEntry.cpp"
 #include "time.h"
 
+const int MAX_ENTRIES = 80;
 // using namespace std;
 using namespace tr1;
 
@@ -26,21 +27,21 @@ class Cache{
 			}
 		}
 		void add(string key, CacheEntry * value) {
-      if (cache.size() > 5) {
-        lru();
-      }
+			if (cache.size() > MAX_ENTRIES) {
+				lru();
+			}
 			cache[key] = value;
 		}
 		CacheEntry * get(string key) {
 			if (cache.find(key) != cache.end()) {
-        if (cache[key]->isFresh()) {
-				  cache[key] -> updateAccessTime();
-				  return cache[key];
-        } else {
-          delete cache[key];
-          cache.erase(key);
-        }
-      }
+				if (cache[key]->isFresh()) {
+					cache[key] -> updateAccessTime();
+					return cache[key];
+				} else {
+					delete cache[key];
+					cache.erase(key);
+				}
+			}
 			return NULL;
 		}
 		unsigned size() {
@@ -50,13 +51,13 @@ class Cache{
 			CacheEntry* minEntry = cache.begin()->second;
 			string minRequest = cache.begin()->first;
 			for(it = cache.begin(); it != cache.end(); it++){
-        if(it->second->getLastAccess() < minEntry->getLastAccess()){
+				if(it->second->getLastAccess() < minEntry->getLastAccess()){
 					minRequest = it->first;
 					minEntry = it->second;
 				}
 			}
 			cache.erase(minRequest);
-      delete minEntry;
+			delete minEntry;
 		}
 		// dump to file
 		bool dumpToFile(char* fileName){
