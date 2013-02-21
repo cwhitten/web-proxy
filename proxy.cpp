@@ -170,9 +170,8 @@ void initializeThreadPool() {
 
 void * consumeRequest(void * info) {
   pthread_detach(pthread_self());
-  int sock, length;
+  int sock;
   CacheEntry * entry;
-  bool foundInCache = false;
   Request * r = NULL;
   while (true) {
     pthread_cond_wait(&CONSUME_COND, &REQUEST_QUEUE_LOCK);
@@ -317,8 +316,8 @@ void exitHandler(int signal) {
 void returnHandler() {
   log("Proxy server has called exit()");
   clearRequestQueue();
-  // TODO:
-  // Dump cache to disk
+  log("dumping cachable entries to disk");
+  HTTP_CACHE.dumpToFile((char*)CACHE_FILE_NAME);
   log("Exiting.");
 }
 

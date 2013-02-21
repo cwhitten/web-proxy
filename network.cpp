@@ -118,9 +118,8 @@ void sendSock(int sock, char * msg, int bytesToSend) {
 // until the server explicity closes the socket (recv returns zero)
 char * recvSock(int sock) {
   char * buffer = NULL, * newbuffer;
-  int pos = 0, len = 0, found = 0;
-  int i, n;
-  bool first = false;
+  int pos = 0, len = 0;
+  int n;
 
   while (true) {
     if (pos == len) {
@@ -150,9 +149,8 @@ char * recvSock(int sock) {
 // is found it will return a char * string up to the delimiter
 char * recvRequest(int sock) {
   char * buffer = NULL, * newbuffer;
-  int pos = 0, len = 0, found = 0;
-  int i, n;
-  bool first = false;
+  int pos = 0, len = 0;
+  int n;
 
   while (true) {
     if (pos == len) {

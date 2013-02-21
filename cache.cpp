@@ -11,7 +11,6 @@
 #include "time.h"
 
 const int MAX_ENTRIES = 80;
-// using namespace std;
 using namespace tr1;
 
 // check freshness, remove if not fresh
